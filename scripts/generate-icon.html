@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Podcast Club App Icon</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+        }
+        .icon-container {
+            margin: 20px;
+            text-align: center;
+        }
+        canvas {
+            border: 1px solid #ccc;
+            background: white;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Podcast Club App Icon Generator</h1>
+
+    <div class="icon-container">
+        <h3>1024x1024 (iOS/Android)</h3>
+        <canvas id="icon1024" width="1024" height="1024"></canvas>
+        <br>
+        <button onclick="downloadIcon('icon1024', 'icon-1024.png')">Download 1024x1024</button>
+    </div>
+
+    <div class="icon-container">
+        <h3>512x512 (Android)</h3>
+        <canvas id="icon512" width="512" height="512"></canvas>
+        <br>
+        <button onclick="downloadIcon('icon512', 'adaptive-icon-512.png')">Download 512x512</button>
+    </div>
+
+    <div class="icon-container">
+        <h3>Splash Screen (1284x2778 - iPhone 14 Pro)</h3>
+        <canvas id="splash" width="1284" height="2778"></canvas>
+        <br>
+        <button onclick="downloadIcon('splash', 'splash.png')">Download Splash</button>
+    </div>
+
+    <script>
+        // Load the fonts
+        const grandBoldFont = new FontFace('GrandBold', 'url(../assets/fonts/GrandBold.ttf)');
+        const caveatFont = new FontFace('Caveat', 'url(https://fonts.gstatic.com/s/caveat/v17/WnznHAc5bAfYB2QRah7pcpNvOx-pjfJ9eIWpYQ.woff2)');
+
+        Promise.all([grandBoldFont.load(), caveatFont.load()]).then(function(fonts) {
+            fonts.forEach(font => document.fonts.add(font));
+            console.log('Fonts loaded');
+
+            // Now draw the icons
+            drawIcon(document.getElementById('icon1024'));
+            drawIcon(document.getElementById('icon512'));
+            drawSplash(document.getElementById('splash'));
+        }).catch(function(error) {
+            console.error('Error loading fonts:', error);
+            alert('Error loading fonts. Please check the console for details.');
+        });
+
+        function drawIcon(canvas) {
+            const ctx = canvas.getContext('2d');
+            const size = canvas.width;
+            const centerX = size / 2;
+            const centerY = size / 2;
+
+            // Background - solid orange/red color
+            ctx.fillStyle = '#E05F4E';
+            ctx.fillRect(0, 0, size, size);
+
+            // Set up text rendering
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            const fontSize = size * 0.22; // Increased from 0.16 to fill more space
+            ctx.font = `${fontSize}px GrandBold`;
+
+            // Draw POD
+            ctx.fillStyle = '#E5DFD3';
+            ctx.fillText('POD', centerX, centerY - fontSize * 1);
+
+            // Draw CAST
+            ctx.fillStyle = '#E5DFD3';
+            ctx.fillText('CAST', centerX, centerY - fontSize * 0.15);
+
+            // Draw CLUB
+            ctx.fillStyle = '#FFFFFF';
+            ctx.globalAlpha = 0.85;
+            ctx.fillText('CLUB', centerX, centerY + fontSize * 0.7);
+            ctx.globalAlpha = 1.0;
+
+            // Draw tagline in smaller text
+            const taglineFontSize = size * 0.045; // Increased from 0.032
+            ctx.font = `${taglineFontSize}px Caveat`;
+            ctx.fillStyle = '#F8F6F3';
+            ctx.fillText('LISTEN. DISCUSS.', centerX, centerY + fontSize * 1.4);
+            ctx.fillText('GROW. TOGETHER.', centerX, centerY + fontSize * 1.4 + taglineFontSize * 1.1);
+        }
+
+        function drawSplash(canvas) {
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            // Background - solid orange/red color
+            ctx.fillStyle = '#E05F4E';
+            ctx.fillRect(0, 0, width, height);
+
+            // Set up text rendering
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            const fontSize = width * 0.2; // Scale to width for splash
+            ctx.font = `${fontSize}px GrandBold`;
+
+            // Draw POD
+            ctx.fillStyle = '#E5DFD3';
+            ctx.fillText('POD', centerX, centerY - fontSize * 1);
+
+            // Draw CAST
+            ctx.fillStyle = '#E5DFD3';
+            ctx.fillText('CAST', centerX, centerY - fontSize * 0.15);
+
+            // Draw CLUB
+            ctx.fillStyle = '#FFFFFF';
+            ctx.globalAlpha = 0.85;
+            ctx.fillText('CLUB', centerX, centerY + fontSize * 0.7);
+            ctx.globalAlpha = 1.0;
+
+            // Draw tagline
+            const taglineFontSize = width * 0.055;
+            ctx.font = `${taglineFontSize}px Caveat`;
+            ctx.fillStyle = '#F8F6F3';
+            ctx.fillText('LISTEN. DISCUSS.', centerX, centerY + fontSize * 1.4);
+            ctx.fillText('GROW. TOGETHER.', centerX, centerY + fontSize * 1.4 + taglineFontSize * 1.1);
+        }
+
+        function downloadIcon(canvasId, filename) {
+            const canvas = document.getElementById(canvasId);
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    </script>
+</body>
+</html>

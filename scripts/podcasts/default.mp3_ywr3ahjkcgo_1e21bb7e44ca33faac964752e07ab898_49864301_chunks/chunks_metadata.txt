@@ -1,0 +1,32 @@
+Chunk Metadata
+==================================================
+Original file: /Users/mokes/projects/pcc_new/scripts/podcasts/default.mp3_ywr3ahjkcgo_1e21bb7e44ca33faac964752e07ab898_49864301.mp3
+Total duration: 3116.51 seconds
+Chunk duration: 600 seconds
+Overlap: 3 seconds
+Number of chunks: 4
+
+Chunk 001:
+  File: chunk_001.mp3
+  Start time: 0.00s
+  Duration: 603.00s
+  Offset for reconstruction: 0.00s
+
+Chunk 002:
+  File: chunk_002.mp3
+  Start time: 597.00s
+  Duration: 603.00s
+  Offset for reconstruction: 600.00s
+
+Chunk 003:
+  File: chunk_003.mp3
+  Start time: 1197.00s
+  Duration: 603.00s
+  Offset for reconstruction: 1200.00s
+
+Chunk 005:
+  File: chunk_005.mp3
+  Start time: 2397.00s
+  Duration: 603.00s
+  Offset for reconstruction: 2400.00s
+
