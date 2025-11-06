@@ -1,5 +1,5 @@
 import { Observable } from '@nozbe/watermelondb/utils/rx';
-import { Database, Collection, Model } from '@nozbe/watermelondb';
+import type { Collection, Database, Model } from '@nozbe/watermelondb';
 
 // Base repository interface - all repos follow this pattern
 export interface IRepository<T extends Model> {
@@ -74,35 +74,46 @@ export abstract class BaseRepository<T extends Model> implements IRepository<T> 
   }
 
   async create(data: Partial<T>): Promise<T> {
-    return await this.database.write(async () => {
-      return await this.collection.create((record: any) => {
-        Object.assign(record._raw, this.prepareCreate(data));
+    const collection = this.collection;
+    const prepareCreate = this.prepareCreate.bind(this);
+
+    return await this.database.write(async function baseRepositoryCreate() {
+      return await collection.create((record: any) => {
+        Object.assign(record._raw, prepareCreate(data));
       });
     });
   }
 
   async update(id: string, data: Partial<T>): Promise<T> {
-    return await this.database.write(async () => {
-      const record = await this.collection.find(id);
+    const collection = this.collection;
+    const prepareUpdate = this.prepareUpdate.bind(this);
+
+    return await this.database.write(async function baseRepositoryUpdate() {
+      const record = await collection.find(id);
       return await record.update((r: any) => {
-        Object.assign(r._raw, this.prepareUpdate(data));
+        Object.assign(r._raw, prepareUpdate(data));
       });
     });
   }
 
   async delete(id: string): Promise<void> {
-    await this.database.write(async () => {
-      const record = await this.collection.find(id);
+    const collection = this.collection;
+
+    await this.database.write(async function baseRepositoryDelete() {
+      const record = await collection.find(id);
       await record.markAsDeleted();
     });
   }
 
   async batchCreate(items: Partial<T>[]): Promise<T[]> {
-    return await this.database.write(async () => {
+    const collection = this.collection;
+    const prepareCreate = this.prepareCreate.bind(this);
+
+    return await this.database.write(async function baseRepositoryBatchCreate() {
       const records = await Promise.all(
         items.map(item =>
-          this.collection.create((record: any) => {
-            Object.assign(record._raw, this.prepareCreate(item));
+          collection.create((record: any) => {
+            Object.assign(record._raw, prepareCreate(item));
           })
         )
       );
@@ -111,12 +122,15 @@ export abstract class BaseRepository<T extends Model> implements IRepository<T> 
   }
 
   async batchUpdate(updates: { id: string; data: Partial<T> }[]): Promise<T[]> {
-    return await this.database.write(async () => {
+    const collection = this.collection;
+    const prepareUpdate = this.prepareUpdate.bind(this);
+
+    return await this.database.write(async function baseRepositoryBatchUpdate() {
       const records = await Promise.all(
         updates.map(async ({ id, data }) => {
-          const record = await this.collection.find(id);
+          const record = await collection.find(id);
           return await record.update((r: any) => {
-            Object.assign(r._raw, this.prepareUpdate(data));
+            Object.assign(r._raw, prepareUpdate(data));
           });
         })
       );
@@ -125,8 +139,10 @@ export abstract class BaseRepository<T extends Model> implements IRepository<T> 
   }
 
   async batchDelete(ids: string[]): Promise<void> {
-    await this.database.write(async () => {
-      const records = await Promise.all(ids.map(id => this.collection.find(id)));
+    const collection = this.collection;
+
+    await this.database.write(async function baseRepositoryBatchDelete() {
+      const records = await Promise.all(ids.map(id => collection.find(id)));
       await Promise.all(records.map(r => r.markAsDeleted()));
     });
   }

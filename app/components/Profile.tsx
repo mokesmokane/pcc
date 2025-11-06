@@ -1,28 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Image,
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../contexts/ProfileContext';
-import { useRouter } from 'expo-router';
-import { useAudio } from '../contexts/AudioContextExpo';
 
 export default function ProfileScreen() {
-  const router = useRouter();
   const { user } = useAuth();
-  const { currentTrack } = useAudio();
   const { profile, loading, updateProfile, getInitials } = useProfile();
   const [username, setUsername] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null); 
@@ -58,7 +53,7 @@ export default function ProfileScreen() {
 
     // Launch image picker
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaType.Images,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,

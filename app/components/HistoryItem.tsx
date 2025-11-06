@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface HistoryItemProps {
@@ -15,7 +15,7 @@ interface HistoryItemProps {
 export function HistoryItem({
   podcastTitle,
   episodeTitle,
-  source,
+  _source,
   artwork,
   peopleInClub,
   progress,

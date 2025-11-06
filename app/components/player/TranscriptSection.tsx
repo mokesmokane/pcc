@@ -1,6 +1,6 @@
 import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTranscript } from '../../contexts/TranscriptContext';
 
 interface TranscriptSectionProps {
@@ -84,7 +84,7 @@ export function TranscriptSection({ onViewAll, episodeId, currentPosition = 0 }:
             ellipsizeMode="tail"
           >
             {displayCurrentText}
-            <Text style={styles.upcomingText}>{displayUpcomingText ? ' ' + displayUpcomingText : ''}</Text>
+            <Text style={styles.upcomingText}>{displayUpcomingText ? ` ${  displayUpcomingText}` : ''}</Text>
           </Text>
         )}
       </View>

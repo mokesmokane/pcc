@@ -1,7 +1,7 @@
 import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useWeeklySelections } from './contexts/WeeklySelectionsContext';
-import { WeeklyPodcast } from './contexts/WeeklySelectionsContext';
+import type { WeeklyPodcast } from './contexts/WeeklySelectionsContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 const CARD_WIDTH = screenWidth - 60;

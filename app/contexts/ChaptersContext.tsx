@@ -1,8 +1,11 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { ChapterRepository } from '../data/repositories/chapter.repository';
-import Chapter from '../data/models/chapter.model';
-import { ChapterData, chapterService } from '../services/chapter.service';
+import type Chapter from '../data/models/chapter.model';
+import type { ChapterData} from '../services/chapter.service';
+import { chapterService } from '../services/chapter.service';
 import { useDatabase } from './DatabaseContext';
+import { isPodcastClubEpisode } from '../utils/episodeUtils';
 
 interface ChaptersContextType {
   chapters: Chapter[];
@@ -84,9 +87,20 @@ export function ChaptersProvider({ children }: { children: ReactNode }) {
     }
   }, [currentPosition, chapters, repository]);
 
-  const loadChapters = async (episodeId: string) => {
+  const loadChapters = useCallback(async (episodeId: string) => {
     if (!episodeId) {
       console.log('ChaptersContext - No episode ID provided');
+      return;
+    }
+
+    // Skip loading for non-Podcast Club episodes (traditional podcast player)
+    if (!isPodcastClubEpisode(episodeId)) {
+      console.log('ChaptersContext - Skipping chapter load for non-Podcast Club episode:', episodeId);
+      setCurrentEpisodeId(episodeId);
+      setChapters([]);
+      setFormattedChapters([]);
+      setLoading(false);
+      setError(null);
       return;
     }
 
@@ -114,7 +128,7 @@ export function ChaptersProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentEpisodeId, chapters.length]);
 
   const updatePosition = (position: number) => {
     setCurrentPosition(position);

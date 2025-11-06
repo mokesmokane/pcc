@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { MembersRepository } from '../data/repositories/members.repository';
 import Member from '../data/models/member.model';
 import { useAuth } from './AuthContext';
 import { useDatabase } from './DatabaseContext';
+import { isPodcastClubEpisode } from '../utils/episodeUtils';
 
 interface MemberData {
   id: string;
@@ -58,9 +60,19 @@ export function MembersProvider({ children }: { children: ReactNode }) {
     }
   }, [database]);
 
-  const loadMembers = async (episodeId: string) => {
+  const loadMembers = useCallback(async (episodeId: string) => {
     if (!membersRepository) {
       setError('Database not initialized');
+      return;
+    }
+
+    // Skip loading for non-Podcast Club episodes (traditional podcast player)
+    if (!isPodcastClubEpisode(episodeId)) {
+      console.log('MembersContext - Skipping members load for non-Podcast Club episode:', episodeId);
+      setCurrentEpisodeId(episodeId);
+      setMembers([]);
+      setLoading(false);
+      setError(null);
       return;
     }
 
@@ -107,7 +119,7 @@ export function MembersProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [membersRepository, user?.id]);
 
   const refreshMembers = async () => {
     if (currentEpisodeId) {

@@ -22,6 +22,7 @@
         "NSCameraUsageDescription": "This app needs access to camera to take photos for your profile picture.",
         "NSPhotoLibraryUsageDescription": "This app needs access to photo library to select a profile picture.",
         "NSPhotoLibraryAddUsageDescription": "This app needs permission to save photos to your photo library.",
+        "NSContactsUsageDescription": "This app needs access to your contacts to help you invite friends to Podcast Club.",
         "UIBackgroundModes": ["audio"]
       }
     },
@@ -54,6 +55,12 @@
           "color": "#E05F4E",
           "sounds": [],
           "mode": "production"
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Allow Podcast Club to access your contacts to invite friends."
         }
       ]
     ]

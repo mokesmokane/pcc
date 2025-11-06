@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { CommentRepository } from '../data/repositories/comment.repository';
-import Comment from '../data/models/comment.model';
+import type Comment from '../data/models/comment.model';
 import { useAuth } from './AuthContext';
 import { useDatabase } from './DatabaseContext';
+import { isPodcastClubEpisode } from '../utils/episodeUtils';
 
 interface CommentData {
   id: string;
@@ -10,7 +12,7 @@ interface CommentData {
   avatar?: string;
   text: string;
   time: string;
-  reactions?: Array<{ emoji: string; count: number; userReacted?: boolean }>;
+  reactions?: { emoji: string; count: number; userReacted?: boolean }[];
   replies?: number;
   replyAvatars?: string[]; // URLs of avatars from users who replied
 }
@@ -20,6 +22,7 @@ interface CommentsContextType {
   loading: boolean;
   error: string | null;
   loadComments: (episodeId: string) => Promise<void>;
+  getCommentsForEpisode: (episodeId: string, parentId?: string | null) => Promise<CommentData[]>;
   submitComment: (episodeId: string, content: string, parentId?: string) => Promise<void>;
   addReaction: (commentId: string, emoji: string) => Promise<void>;
   removeReaction: (commentId: string, emoji: string) => Promise<void>;
@@ -79,9 +82,9 @@ export function CommentsProvider({ children }: { children: ReactNode }) {
             avatar: comment.avatarUrl,
             text: comment.content,
             time: formatTimeAgo(comment.createdAt),
-            reactions: reactions,
+            reactions,
             replies: replyCount || 0,
-            replyAvatars: replyAvatars,
+            replyAvatars,
           };
         })
       );
@@ -124,12 +127,22 @@ export function CommentsProvider({ children }: { children: ReactNode }) {
     return `${weeks}w ago`;
   };
 
-  const loadComments = async (episodeId: string) => {
+  const loadComments = useCallback(async (episodeId: string) => {
     if (!commentRepository) {
       return;
     }
 
     if (!episodeId) {
+      return;
+    }
+
+    // Skip loading for non-Podcast Club episodes (traditional podcast player)
+    if (!isPodcastClubEpisode(episodeId)) {
+      console.log('CommentsContext - Skipping comments load for non-Podcast Club episode:', episodeId);
+      setCurrentEpisodeId(episodeId);
+      setComments([]);
+      setLoading(false);
+      setError(null);
       return;
     }
 
@@ -144,7 +157,7 @@ export function CommentsProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [commentRepository]);
 
   const submitComment = async (episodeId: string, content: string, parentId?: string) => {
     if (!commentRepository || !user) {
@@ -191,37 +204,55 @@ export function CommentsProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const getReplies = async (episodeId: string, parentId: string): Promise<CommentData[]> => {
+  const getCommentsForEpisode = async (episodeId: string, parentId: string | null = null): Promise<CommentData[]> => {
     if (!commentRepository) {
       return [];
     }
 
     try {
-      // Get replies for this parent comment
-      const replies = await commentRepository.getEpisodeComments(episodeId, parentId);
+      // Get comments for this episode
+      const dbComments = await commentRepository.getEpisodeComments(episodeId, parentId);
 
-      // Format replies with reactions
-      const formattedReplies: CommentData[] = await Promise.all(
-        replies.map(async (reply) => {
-          const reactions = await commentRepository.getReactions(reply.id, user?.id);
+      // Format comments with reactions and reply count
+      const formattedComments: CommentData[] = await Promise.all(
+        dbComments.map(async (comment) => {
+          const reactions = await commentRepository.getReactions(comment.id, user?.id);
+
+          // Only get reply count for top-level comments
+          let replyCount = 0;
+          let replyAvatars: string[] = [];
+          if (!parentId) {
+            const replies = await commentRepository.getEpisodeComments(episodeId, comment.id);
+            replyCount = replies.length;
+            replyAvatars = replies
+              .slice(0, 3)
+              .map(reply => reply.avatarUrl)
+              .filter(avatar => avatar != null) as string[];
+          }
 
           return {
-            id: reply.id,
-            author: reply.username || 'Anonymous',
-            avatar: reply.avatarUrl,
-            text: reply.content,
-            time: formatTimeAgo(reply.createdAt),
-            reactions: reactions,
-            replies: 0, // Replies don't have nested replies for now
+            id: comment.id,
+            author: comment.username || 'Anonymous',
+            avatar: comment.avatarUrl,
+            text: comment.content,
+            time: formatTimeAgo(comment.createdAt),
+            reactions,
+            replies: replyCount,
+            replyAvatars,
           };
         })
       );
 
-      return formattedReplies;
+      return formattedComments;
     } catch (err) {
-      console.error('Failed to get replies:', err);
+      console.error('Failed to get comments for episode:', err);
       return [];
     }
+  };
+
+  const getReplies = async (episodeId: string, parentId: string): Promise<CommentData[]> => {
+    // Just use getCommentsForEpisode with parentId
+    return getCommentsForEpisode(episodeId, parentId);
   };
 
   const value: CommentsContextType = {
@@ -229,6 +260,7 @@ export function CommentsProvider({ children }: { children: ReactNode }) {
     loading,
     error,
     loadComments,
+    getCommentsForEpisode,
     submitComment,
     addReaction,
     removeReaction,

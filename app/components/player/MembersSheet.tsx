@@ -1,6 +1,6 @@
 import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
 import React, { useEffect, useRef } from 'react';
-import { Animated, PanResponder, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { ActivityIndicator, Animated, PanResponder, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MiniPlayer } from './MiniPlayer';
 import { MemberInfo } from '../MemberInfo';
@@ -78,7 +78,7 @@ export function MembersSheet({
     if (episodeId) {
       loadMembers(episodeId);
     }
-  }, [episodeId]);
+  }, [episodeId, loadMembers]);
 
   useEffect(() => {
     if (visible) {
@@ -95,7 +95,7 @@ export function MembersSheet({
         useNativeDriver: true,
       }).start();
     }
-  }, [visible, expanded]);
+  }, [visible, expanded, membersAnimatedValue, membersTranslateY]);
 
   if (!visible) return null;
 

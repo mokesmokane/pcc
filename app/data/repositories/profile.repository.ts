@@ -1,10 +1,13 @@
-import { Database } from '@nozbe/watermelondb';
+import type { Database } from '@nozbe/watermelondb';
 import { Q } from '@nozbe/watermelondb';
 import { BaseRepository } from './base.repository';
-import Profile from '../models/profile.model';
+import type Profile from '../models/profile.model';
 import { supabase } from '../../lib/supabase';
 
 export class ProfileRepository extends BaseRepository<Profile> {
+  private lastSyncTime: number = 0;
+  private CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
   constructor(database: Database) {
     super(database, 'profiles');
   }
@@ -81,6 +84,9 @@ export class ProfileRepository extends BaseRepository<Profile> {
         needs_sync: true,
       } as any);
 
+      // Invalidate cache to force refresh on next access
+      this.lastSyncTime = 0;
+
       // Sync to remote in background
       this.syncProfile(userId).catch(console.error);
 
@@ -88,9 +94,18 @@ export class ProfileRepository extends BaseRepository<Profile> {
     }
   }
 
-  async syncCurrentUserProfile(): Promise<void> {
+  async syncCurrentUserProfile(force = false): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+
+    // Check cache age
+    const cacheAge = Date.now() - this.lastSyncTime;
+    if (!force && cacheAge < this.CACHE_TTL) {
+      console.log('✅ Profile cache valid, skipping sync');
+      return;
+    }
+
+    console.log('📥 Profile cache expired or forced, syncing...');
 
     try {
       const { data, error } = await supabase
@@ -117,6 +132,9 @@ export class ProfileRepository extends BaseRepository<Profile> {
           await this.upsertFromRemote(newProfile);
         }
       }
+
+      // Update cache timestamp after successful sync
+      this.lastSyncTime = Date.now();
     } catch (error) {
       console.error('Failed to sync user profile:', error);
     }
@@ -128,7 +146,7 @@ export class ProfileRepository extends BaseRepository<Profile> {
 
     try {
       // Handle avatar upload if it's a local URI
-      let avatarUrl = profile.avatarUrl;
+      let {avatarUrl} = profile;
       if (avatarUrl && !avatarUrl.startsWith('http')) {
         avatarUrl = await this.uploadAvatar(userId, avatarUrl);
       }

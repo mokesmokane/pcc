@@ -121,7 +121,7 @@ export class DebugService {
       for (const comment of allComments) {
         if (!uuidRegex.test(comment.id)) {
           console.log('Deleting comment with invalid ID:', comment.id);
-          await database.write(async () => {
+          await database.write(async function deleteInvalidComment() {
             await comment.markAsDeleted();
           });
           deletedComments++;
@@ -135,7 +135,7 @@ export class DebugService {
       for (const reaction of allReactions) {
         if (!uuidRegex.test(reaction.id)) {
           console.log('Deleting reaction with invalid ID:', reaction.id);
-          await database.write(async () => {
+          await database.write(async function deleteInvalidReaction() {
             await reaction.markAsDeleted();
           });
           deletedReactions++;
@@ -174,7 +174,7 @@ export class DebugService {
         if (error?.code === 'PGRST116' || !data) {
           // Reaction doesn't exist in Supabase, delete locally
           console.log('Deleting local reaction that no longer exists in Supabase:', reaction.id);
-          await database.write(async () => {
+          await database.write(async function deleteOrphanedLocalReaction() {
             await reaction.markAsDeleted();
           });
         }

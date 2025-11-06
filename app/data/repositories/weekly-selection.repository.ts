@@ -1,11 +1,14 @@
-import { Database } from '@nozbe/watermelondb';
+import type { Database } from '@nozbe/watermelondb';
 import { Q } from '@nozbe/watermelondb';
-import { Observable } from '@nozbe/watermelondb/utils/rx';
+import type { Observable } from '@nozbe/watermelondb/utils/rx';
 import { BaseRepository } from './base.repository';
-import WeeklySelection from '../models/weekly-selection.model';
+import type WeeklySelection from '../models/weekly-selection.model';
 import { supabase } from '../../lib/supabase';
 
 export class WeeklySelectionRepository extends BaseRepository<WeeklySelection> {
+  private lastSyncTime: number = 0;
+  private CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
   constructor(database: Database) {
     super(database, 'weekly_selections');
   }
@@ -104,13 +107,75 @@ export class WeeklySelectionRepository extends BaseRepository<WeeklySelection> {
     }
   }
 
+  async getAllUserWeeklyChoices(userId: string): Promise<Array<{
+    episodeId: string;
+    weekStart: string;
+    chosenAt: Date;
+    episodeTitle?: string;
+    podcastTitle?: string;
+    artworkUrl?: string;
+    audioUrl?: string;
+    description?: string;
+    duration?: number;
+  }>> {
+    try {
+      const userChoicesCollection = this.database.get('user_weekly_choices');
+      const choices = await userChoicesCollection
+        .query(
+          Q.where('user_id', userId),
+          Q.sortBy('chosen_at', Q.desc)
+        )
+        .fetch();
+
+      // Fetch episode details for each choice
+      const choicesWithDetails = await Promise.all(
+        choices.map(async (choice: any) => {
+          try {
+            // Get the weekly selection that contains episode details
+            const weeklySelections = await this.query([
+              Q.where('episode_id', choice.episodeId),
+              Q.where('week_start', choice.weekStart),
+            ]);
+
+            const selection = weeklySelections[0];
+
+            return {
+              episodeId: choice.episodeId,
+              weekStart: choice.weekStart,
+              chosenAt: new Date(choice.chosenAt),
+              episodeTitle: selection?.episodeTitle,
+              podcastTitle: selection?.podcastTitle,
+              artworkUrl: selection?.artworkUrl,
+              audioUrl: selection?.audioUrl,
+              description: selection?.episodeDescription,
+              duration: selection?.duration,
+            };
+          } catch (error) {
+            console.error(`Failed to fetch details for episode ${choice.episodeId}:`, error);
+            return {
+              episodeId: choice.episodeId,
+              weekStart: choice.weekStart,
+              chosenAt: new Date(choice.chosenAt),
+            };
+          }
+        })
+      );
+
+      return choicesWithDetails;
+    } catch (error) {
+      console.error('Failed to fetch all user weekly choices:', error);
+      return [];
+    }
+  }
+
   async saveUserWeeklyChoice(userId: string, episodeId: string): Promise<boolean> {
     const weekStart = this.getWeekStart();
 
     try {
       // Save to local database with needs_sync flag
-      await this.database.write(async () => {
-        const userChoicesCollection = this.database.get('user_weekly_choices');
+      const database = this.database;
+      await this.database.write(async function saveUserWeeklyChoiceLocally() {
+        const userChoicesCollection = database.get('user_weekly_choices');
         const existing = await userChoicesCollection
           .query(
             Q.where('user_id', userId),
@@ -166,9 +231,17 @@ export class WeeklySelectionRepository extends BaseRepository<WeeklySelection> {
     }
   }
 
-  async syncWithRemote(): Promise<void> {
+  async syncWithRemote(force = false): Promise<void> {
     const weekStart = this.getWeekStart();
-    console.log('Syncing weekly selections for week start:', weekStart);
+
+    // Check cache age
+    const cacheAge = Date.now() - this.lastSyncTime;
+    if (!force && cacheAge < this.CACHE_TTL) {
+      console.log('✅ Weekly selections cache valid, skipping sync');
+      return;
+    }
+
+    console.log('📥 Weekly selections cache expired or forced, syncing for week start:', weekStart);
 
     try {
       const { data, error } = await supabase
@@ -202,6 +275,9 @@ export class WeeklySelectionRepository extends BaseRepository<WeeklySelection> {
           await this.upsertFromRemote(item);
         }
       }
+
+      // Update cache timestamp after successful sync
+      this.lastSyncTime = Date.now();
     } catch (error) {
       console.error('Failed to sync weekly selections:', error);
       throw error;
@@ -226,7 +302,7 @@ export class WeeklySelectionRepository extends BaseRepository<WeeklySelection> {
           });
 
         if (!error) {
-          await this.database.write(async () => {
+          await this.database.write(async function markUserWeeklyChoiceAsSynced() {
             await choice.update((c: any) => {
               c.needsSync = false;
               c.syncedAt = Date.now();
@@ -259,9 +335,10 @@ export class WeeklySelectionRepository extends BaseRepository<WeeklySelection> {
 
       if (data && data.length > 0) {
         const userChoicesCollection = this.database.get('user_weekly_choices');
+        const database = this.database;
 
         for (const remoteChoice of data) {
-          await this.database.write(async () => {
+          await database.write(async function upsertUserWeeklyChoiceFromRemote() {
             const existing = await userChoicesCollection
               .query(
                 Q.where('user_id', remoteChoice.user_id),

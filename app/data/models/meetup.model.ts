@@ -1,5 +1,5 @@
 import { Model } from '@nozbe/watermelondb';
-import { field, date, readonly, children, lazy } from '@nozbe/watermelondb/decorators';
+import { children, date, field, lazy, readonly } from '@nozbe/watermelondb/decorators';
 import { Q } from '@nozbe/watermelondb';
 
 export default class Meetup extends Model {

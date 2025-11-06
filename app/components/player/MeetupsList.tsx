@@ -1,10 +1,21 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { MeetupCard } from './MeetupCard';
 import { MeetupDetailsModal } from './MeetupDetailsModal';
 
+interface Meetup {
+  id: string;
+  location: string;
+  meetup_date: string;
+  meetup_time: string;
+  venue: string;
+  address: string;
+  max_attendees: number;
+  attendees?: Array<{ user_id: string; avatar_url?: string; username?: string }>;
+}
+
 interface MeetupsListProps {
-  meetups: any[];
+  meetups: Meetup[];
   loading?: boolean;
   userStatuses?: Map<string, 'confirmed' | 'waitlist' | null>;
   onJoin?: (meetupId: string) => void;
@@ -24,10 +35,10 @@ export function MeetupsList({
   emptyMessage = 'No meetups scheduled yet',
   emptySubtext = 'Be the first to create one!',
 }: MeetupsListProps) {
-  const [selectedMeetup, setSelectedMeetup] = useState<any>(null);
+  const [selectedMeetup, setSelectedMeetup] = useState<Meetup | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  const handleMeetupPress = (meetup: any) => {
+  const handleMeetupPress = (meetup: Meetup) => {
     setSelectedMeetup(meetup);
     setModalVisible(true);
   };

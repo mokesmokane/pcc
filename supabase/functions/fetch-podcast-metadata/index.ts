@@ -54,7 +54,7 @@ serve(async (req) => {
       description: descriptionMatch ? descriptionMatch[1].trim() : '',
       author: authorMatch ? authorMatch[1].trim() : '',
       image: imageUrl,
-      feedUrl: feedUrl
+      feedUrl
     }
 
     return new Response(

@@ -1,5 +1,6 @@
-import { Database, Q } from '@nozbe/watermelondb';
-import EpisodeDetails from '../models/episode-details.model';
+import type { Database} from '@nozbe/watermelondb';
+import { Q } from '@nozbe/watermelondb';
+import type EpisodeDetails from '../models/episode-details.model';
 import { BaseRepository } from './base.repository';
 import { supabase } from '../../lib/supabase';
 
@@ -27,9 +28,12 @@ export class EpisodeDetailsRepository extends BaseRepository<EpisodeDetails> {
     about: string,
     whyWeLoveIt: string
   ): Promise<boolean> {
+    const database = this.database;
+    const getEpisodeDetails = this.getEpisodeDetails.bind(this);
+
     try {
-      await this.database.write(async () => {
-        const existing = await this.getEpisodeDetails(episodeId);
+      await this.database.write(async function upsertEpisodeDetailsLocally() {
+        const existing = await getEpisodeDetails(episodeId);
 
         if (existing) {
           await existing.update((details) => {
@@ -38,7 +42,7 @@ export class EpisodeDetailsRepository extends BaseRepository<EpisodeDetails> {
             details.needsSync = true;
           });
         } else {
-          await this.database.get<EpisodeDetails>('episode_details').create((details) => {
+          await database.get<EpisodeDetails>('episode_details').create((details) => {
             details.episodeId = episodeId;
             details.about = about;
             details.whyWeLoveIt = whyWeLoveIt;
@@ -68,12 +72,15 @@ export class EpisodeDetailsRepository extends BaseRepository<EpisodeDetails> {
 
       if (!remoteDetails) return;
 
-      await this.database.write(async () => {
+      const database = this.database;
+      const getEpisodeDetails = this.getEpisodeDetails.bind(this);
+
+      await this.database.write(async function syncAllEpisodeDetailsFromRemote() {
         for (const remote of remoteDetails) {
-          const existing = await this.getEpisodeDetails(remote.episode_id);
+          const existing = await getEpisodeDetails(remote.episode_id);
 
           if (!existing) {
-            await this.database.get<EpisodeDetails>('episode_details').create((details) => {
+            await database.get<EpisodeDetails>('episode_details').create((details) => {
               details.episodeId = remote.episode_id;
               details.about = remote.about || '';
               details.whyWeLoveIt = remote.why_we_love_it || '';

@@ -1,163 +1,190 @@
 import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
-import React, { useEffect, useState, useRef } from 'react';
+import React from 'react';
 import {
   Image,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator,
-  Animated,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { MembersDisplay } from './MembersDisplay';
 import { useMembers } from '../contexts/MembersContext';
-import { WeeklyPodcast } from '../contexts/WeeklySelectionsContext';
+import type { WeeklyPodcast } from '../contexts/WeeklySelectionsContext';
+import { usePollProgress } from '../hooks/queries/useDiscussion';
+import { useCurrentPodcastStore } from '../stores/currentPodcastStore';
 
 interface CurrentPodcastSectionProps {
   podcasts: WeeklyPodcast[];
   onPodcastPress?: (podcast: WeeklyPodcast) => void;
   getProgressForEpisode?: (episodeId: string) => number;
+  onPollCompletePress?: () => void;
+  onPollReviewPress?: () => void;
+  onPoddleboxPress?: () => void;
 }
 
-interface PodcastItemProps {
-  podcast: WeeklyPodcast;
-  isExpanded: boolean;
-  onToggle: () => void;
-  onPress: (podcast: WeeklyPodcast) => void;
-  progressPercentage: number;
-  members: any[];
-  stats: any;
-  loading: boolean;
-  isLast: boolean;
-}
-
-function PodcastItem({ podcast, isExpanded, onToggle, onPress, progressPercentage, members, stats, loading, isLast }: PodcastItemProps) {
-  const animationHeight = useRef(new Animated.Value(isExpanded ? 1 : 0)).current;
-
-  useEffect(() => {
-    Animated.timing(animationHeight, {
-      toValue: isExpanded ? 1 : 0,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
-  }, [isExpanded]);
-
-  const totalMembers = stats.totalMembers || podcast.clubMembers;
-
-  return (
-    <View style={[styles.podcastItem, !isLast && styles.podcastItemBorder]}>
-      <TouchableOpacity
-        style={styles.podcastInfo}
-        onPress={onToggle}
-        activeOpacity={0.8}
-      >
-        <Image
-          source={{ uri: podcast.image }}
-          style={styles.podcastImage}
-        />
-        <View style={styles.podcastDetails}>
-          <Text style={styles.podcastTitle} numberOfLines={1}>{podcast.title}</Text>
-          <Text style={styles.podcastSubtitle} numberOfLines={1}>{podcast.episode}</Text>
-        </View>
-      </TouchableOpacity>
-
-      <Animated.View
-        style={{
-          maxHeight: animationHeight.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, 500],
-          }),
-          opacity: animationHeight,
-          overflow: 'hidden',
-        }}
-      >
-        <TouchableOpacity
-          style={styles.progressContainer}
-          onPress={() => onPress(podcast)}
-          activeOpacity={0.9}
-        >
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
-          </View>
-        </TouchableOpacity>
-
-        <View style={styles.membersSection}>
-          <View style={styles.membersHeader}>
-            <Text style={styles.membersTitle}>
-              Members <Text style={styles.memberCount}>({totalMembers})</Text>
-            </Text>
-            <TouchableOpacity onPress={() => onPress(podcast)}>
-              <Text style={styles.viewAllText}>Join the chat {'>'}</Text>
-            </TouchableOpacity>
-          </View>
-
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="small" color="#E05F4E" />
-            </View>
-          ) : (
-            <MembersDisplay
-              progressPercentage={progressPercentage}
-              members={members.slice(0, 6)}
-              stats={stats}
-            />
-          )}
-        </View>
-      </Animated.View>
-    </View>
-  );
+interface ActionItem {
+  number: number;
+  title: string;
+  subtitle: string;
+  showProgress?: boolean;
+  progress?: number;
 }
 
 export default function CurrentPodcastSection({
   podcasts,
   onPodcastPress,
   getProgressForEpisode,
+  onPollCompletePress,
+  onPollReviewPress,
+  onPoddleboxPress,
 }: CurrentPodcastSectionProps) {
   const [fontsLoaded] = useFonts({
     PaytoneOne_400Regular,
   });
-  const [expandedIndex, setExpandedIndex] = useState<number>(0);
-  const { members, stats, loading, loadMembers } = useMembers();
+  const { stats } = useMembers();
 
-  // Load members when expanded podcast changes
-  useEffect(() => {
-    if (podcasts[expandedIndex]?.id) {
-      loadMembers(podcasts[expandedIndex].id);
-    }
-  }, [expandedIndex, podcasts]);
+  // Get current podcast ID from store
+  const currentPodcastId = useCurrentPodcastStore(state => state.currentPodcastId);
 
+  // Determine which podcast to show (current if set, otherwise first in list)
+  const podcast = currentPodcastId && podcasts.length > 0
+    ? podcasts.find(p => p.id === currentPodcastId) || podcasts[0]
+    : podcasts[0];
+
+  // Fetch poll progress for this podcast - must be called before any conditional returns!
+  const { data: pollProgressData } = usePollProgress(podcast?.id || '');
+
+  // Early return AFTER all hooks are called
   if (!fontsLoaded || podcasts.length === 0) {
     return null;
   }
 
-  const toggleExpand = (index: number) => {
-    setExpandedIndex(index);
-  };
+  const pollProgress = pollProgressData?.progress || 0;
+  const isPollCompleted = pollProgressData?.isCompleted || false;
+  const progressPercentage = getProgressForEpisode?.(podcast.id) || 0;
+  const totalMembers = stats.totalMembers || podcast.clubMembers || 0;
 
-  const handlePodcastPress = (podcast: WeeklyPodcast) => {
+  const actionItems: ActionItem[] = [
+    {
+      number: 1,
+      title: 'Finish the podcast',
+      subtitle: 'You got this!',
+      showProgress: true,
+      progress: progressPercentage,
+    },
+    {
+      number: 2,
+      title: isPollCompleted ? 'Review your poll answers' : 'Complete the poll',
+      subtitle: isPollCompleted ? 'See what others think' : 'We wanna know your thoughts',
+      showProgress: true,
+      progress: pollProgress,
+    },
+    {
+      number: 3,
+      title: 'Watch the Poddlebox',
+      subtitle: 'Our curators discuss the podcast',
+    },
+  ];
+
+  const handlePress = () => {
     if (onPodcastPress) {
       onPodcastPress(podcast);
     }
   };
 
+  const handleActionItemPress = (itemNumber: number) => {
+    switch (itemNumber) {
+      case 1:
+        // Finish podcast - navigate to player
+        if (onPodcastPress) {
+          onPodcastPress(podcast);
+        }
+        break;
+      case 2:
+        // Complete the poll - show discussion flow
+        if (isPollCompleted) {
+          if (onPollReviewPress) {
+            onPollReviewPress();
+          }
+        } else {
+          if (onPollCompletePress) {
+            onPollCompletePress();
+          }
+        }
+        break;
+      case 3:
+        // Watch Poddlebox
+        if (onPoddleboxPress) {
+          onPoddleboxPress();
+        }
+        break;
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <View style={styles.podcastCard}>
-        {podcasts.map((podcast, index) => (
-          <PodcastItem
-            key={podcast.id}
-            podcast={podcast}
-            isExpanded={expandedIndex === index}
-            onToggle={() => toggleExpand(index)}
-            onPress={handlePodcastPress}
-            progressPercentage={getProgressForEpisode?.(podcast.id) || 0}
-            members={members}
-            stats={stats}
-            loading={loading}
-            isLast={index === podcasts.length - 1}
+      <View style={styles.card}>
+        {/* Podcast Header */}
+        <View style={styles.header}>
+          <Image
+            source={{ uri: podcast.image }}
+            style={styles.podcastImage}
           />
-        ))}
+          <View style={styles.headerInfo}>
+            <Text style={styles.title} numberOfLines={2}>
+              {podcast.title}
+            </Text>
+            <Text style={styles.subtitle} numberOfLines={1}>
+              {podcast.source || podcast.episode}
+            </Text>
+            <View style={styles.memberBadge}>
+              <Text style={styles.memberBadgeText}>
+                🔥 {totalMembers} people in the club
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Resume Button */}
+        <TouchableOpacity
+          style={styles.resumeButton}
+          onPress={handlePress}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.resumeButtonText}>Continue Listening</Text>
+        </TouchableOpacity>
+
+        <View style={styles.separator} />
+        {/* Action Items */}
+        <View style={styles.actionItems}>
+          {actionItems.map((item) => (
+            <React.Fragment key={item.number}>
+              <TouchableOpacity
+                style={styles.actionItem}
+                activeOpacity={0.7}
+                onPress={() => handleActionItemPress(item.number)}
+              >
+                <View style={styles.actionItemContent}>
+                  <View style={styles.actionItemNumber}>
+                    <Text style={styles.actionItemNumberText}>{item.number}</Text>
+                  </View>
+                  <View style={styles.actionItemText}>
+                    <Text style={styles.actionItemTitle}>{item.title}</Text>
+                    <Text style={styles.actionItemSubtitle}>{item.subtitle}</Text>
+                  </View>
+                  <Text style={styles.actionItemChevron}>›</Text>
+                </View>
+                {item.showProgress && (
+                  <View style={styles.progressBarContainer}>
+                    <View style={styles.progressBar}>
+                      <View style={[styles.progressFill, { width: `${item.progress || 0}%` }]} />
+                    </View>
+                  </View>
+                )}
+              </TouchableOpacity>
+
+            </React.Fragment>
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -165,25 +192,16 @@ export default function CurrentPodcastSection({
 
 const styles = StyleSheet.create({
   container: {
-    // marginBottom: 24,
+    marginBottom: 0,
   },
-  podcastCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+  card: {
+    backgroundColor: '#E8DFD4',
+    borderRadius: 20,
     padding: 20,
   },
-  podcastItem: {
-    // Individual podcast item within the card
-  },
-  podcastItemBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0EDE9',
-    paddingBottom: 16,
-    marginBottom: 16,
-  },
-  podcastInfo: {
+  header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    marginBottom: 16,
   },
   podcastImage: {
     width: 60,
@@ -191,60 +209,103 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginRight: 12,
   },
-  podcastDetails: {
+  headerInfo: {
     flex: 1,
     justifyContent: 'center',
   },
-  podcastTitle: {
+  title: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#2C2826',
+    marginBottom: 4,
+    lineHeight: 20,
+  },
+  subtitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#2C2826',
+    marginBottom: 6,
+  },
+  memberBadge: {
+    alignSelf: 'flex-start',
+  },
+  memberBadgeText: {
+    fontSize: 12,
+    color: '#2C2826',
+    fontWeight: '600',
+  },
+  resumeButton: {
+    backgroundColor: '#E05F4E',
+    borderRadius: 36,
+    paddingVertical: 8,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  resumeButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#403837',
-    marginBottom: 4,
+    color: '#FFFFFF',
   },
-  podcastSubtitle: {
+  actionItems: {
+    // Container for all action items
+  },
+  actionItem: {
+    paddingVertical: 8,
+  },
+  actionItemContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: 'rgba(44, 40, 38, 0.1)',
+    marginBottom: 8,
+  },
+  actionItemNumber: {
+    width: 36,
+    height: 36,
+    borderRadius: 24,
+    backgroundColor: '#E05F4E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  actionItemNumberText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  actionItemText: {
+    flex: 1,
+  },
+  actionItemTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#2C2826',
+    marginBottom: 2,
+  },
+  actionItemSubtitle: {
     fontSize: 13,
-    color: '#8B8680',
+    color: '#6B5E57',
   },
-  progressContainer: {
-    paddingVertical: 16,
+  actionItemChevron: {
+    fontSize: 48,
+    color: '#2C2826',
+    fontWeight: '400',
+    lineHeight: 32,
+  },
+  progressBarContainer: {
+    marginTop: 8,
   },
   progressBar: {
-    height: 4,
-    backgroundColor: '#F0F0F0',
-    borderRadius: 2,
+    height: 6,
+    backgroundColor: '#E8DFD4',
+    borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: '#E05F4E',
-    borderRadius: 2,
-  },
-  membersSection: {
-    paddingTop: 0,
-  },
-  membersHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  membersTitle: {
-    fontSize: 20,
-    fontFamily: 'PaytoneOne_400Regular',
-    color: '#E05F4E',
-  },
-  memberCount: {
-    fontSize: 16,
-    fontWeight: '400',
-    color: '#E05F4E',
-  },
-  viewAllText: {
-    fontSize: 14,
-    color: '#E05F4E',
-  },
-  loadingContainer: {
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 3,
   },
 });

@@ -1,13 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  PanResponder,
-  Animated,
-  LayoutChangeEvent,
-} from 'react-native';
-import { useAudio } from '../../contexts/AudioContextExpo';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import type { LayoutChangeEvent } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  runOnJS,
+  useDerivedValue,
+} from 'react-native-reanimated';
+import { usePlaybackControls, useCurrentTrack } from '../../stores/audioStore.hooks';
 
 interface SeekBarProps {
   disabled?: boolean;
@@ -36,193 +39,189 @@ export const SeekBar: React.FC<SeekBarProps> = ({
   overridePosition,
   overrideDuration
 }) => {
-  const { position: audioPosition, duration: audioDuration, seekTo } = useAudio();
+  const { position: audioPosition, duration: audioDuration } = useCurrentTrack();
+  const { seekTo } = usePlaybackControls();
 
   // Use override values if provided, otherwise fall back to audio context
   const position = overridePosition !== undefined ? overridePosition : audioPosition;
   const duration = overrideDuration !== undefined ? overrideDuration : audioDuration;
 
-  // State for tracking drag
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragPosition, setDragPosition] = useState(0);
-  const [containerWidth, setContainerWidth] = useState(0);
+  // Shared values for UI thread animations
+  const containerWidth = useSharedValue(0);
+  const progressPosition = useSharedValue(0);
+  const isDragging = useSharedValue(false);
+  const thumbScale = useSharedValue(1);
 
-  // Separate animated values for position and scale
-  const positionAnimatedValue = useRef(new Animated.Value(0)).current;
-  const thumbScale = useRef(new Animated.Value(1)).current;
+  // State for display position (only updates on drag release)
+  const [displayPosition, setDisplayPosition] = useState(position);
+  const [showDragIndicator, setShowDragIndicator] = useState(false);
 
-  // Use drag position when dragging, otherwise use actual audio position
-  const displayPosition = isDragging ? dragPosition : position;
+  // Refs for accessing latest values without recreating callbacks
+  const positionRef = useRef(position);
+  const durationRef = useRef(duration);
+
+  useEffect(() => {
+    positionRef.current = position;
+    durationRef.current = duration;
+  }, [position, duration]);
 
   // Handle container layout
   const onLayout = useCallback((event: LayoutChangeEvent) => {
     const { width } = event.nativeEvent.layout;
-    setContainerWidth(width);
+    containerWidth.value = width;
+
+    // Initialize progress position when container width becomes available
+    if (durationRef.current > 0 && !isDragging.value) {
+      const initialProgress = (positionRef.current / durationRef.current) * width;
+      progressPosition.value = initialProgress; // Set immediately, no animation
+    }
   }, []);
 
-  // Update animated value based on position - but NOT when dragging
+  // Update progress position when audio position changes (but not while dragging)
   useEffect(() => {
-    // IMPORTANT: Don't update if we're dragging
-    if (isDragging) return;
-
-    if (containerWidth > 0 && duration > 0) {
-      const progressPixels = (position / duration) * containerWidth;
-
-      // Use non-native driver for position since we're animating width/translateX
-      Animated.timing(positionAnimatedValue, {
-        toValue: progressPixels,
-        duration: 100,
-        useNativeDriver: false,
-      }).start();
+    if (containerWidth.value > 0 && duration > 0 && !isDragging.value) {
+      const newProgress = (position / duration) * containerWidth.value;
+      progressPosition.value = withTiming(newProgress, { duration: 100 });
+      setDisplayPosition(position);
     }
-  }, [position, containerWidth, duration, isDragging]);
+  }, [position, duration]);
 
-  // Create panResponder that updates when containerWidth changes
-  const panResponder = useMemo(() => {
-    return PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderTerminationRequest: () => false,
+  // Callbacks for runOnJS
+  const handleSeek = useCallback((pos: number) => {
+    seekTo(pos);
+  }, [seekTo]);
 
-      onPanResponderGrant: (evt) => {
-        if (containerWidth === 0) return;
+  const setDragIndicator = useCallback((show: boolean) => {
+    setShowDragIndicator(show);
+  }, []);
 
-        const locationX = evt.nativeEvent.locationX;
-        const clampedX = Math.max(0, Math.min(locationX, containerWidth));
-        const newPosition = (clampedX / containerWidth) * duration;
+  const updateDisplayPos = useCallback((pos: number) => {
+    setDisplayPosition(pos);
+  }, []);
 
-        setIsDragging(true);
-        setDragPosition(newPosition);
+  // Pan gesture - runs entirely on UI thread
+  const panGesture = Gesture.Pan()
+    .onStart((event) => {
+      'worklet';
+      if (containerWidth.value === 0 || duration === 0) return;
 
-        // Stop any ongoing animations before setting value
-        positionAnimatedValue.stopAnimation();
-        positionAnimatedValue.setValue(clampedX);
+      isDragging.value = true;
+      thumbScale.value = withSpring(1.5, { damping: 10, stiffness: 150 });
+      runOnJS(setDragIndicator)(true);
 
-        // Scale up thumb with native driver
-        Animated.spring(thumbScale, {
-          toValue: 1.5,
-          friction: 3,
-          tension: 100,
-          useNativeDriver: true,
-        }).start();
-      },
+      // Use event.x - relative to the GestureDetector view
+      // This works correctly even when finger moves vertically!
+      const clampedX = Math.max(0, Math.min(event.x, containerWidth.value));
+      progressPosition.value = clampedX;
 
-      onPanResponderMove: (evt) => {
-        if (containerWidth === 0) return;
+      const newPosition = (clampedX / containerWidth.value) * duration;
+      runOnJS(updateDisplayPos)(newPosition);
+    })
+    .onUpdate((event) => {
+      'worklet';
+      if (containerWidth.value === 0 || duration === 0) return;
 
-        const locationX = evt.nativeEvent.locationX;
-        const clampedX = Math.max(0, Math.min(locationX, containerWidth));
-        const newPosition = (clampedX / containerWidth) * duration;
+      // Use event.x - this fixes the vertical movement issue!
+      // event.x is relative to the view and updates correctly regardless of Y position
+      const clampedX = Math.max(0, Math.min(event.x, containerWidth.value));
+      progressPosition.value = clampedX;
 
-        setDragPosition(newPosition);
+      const newPosition = (clampedX / containerWidth.value) * duration;
+      runOnJS(updateDisplayPos)(newPosition);
+    })
+    .onEnd((event) => {
+      'worklet';
+      if (containerWidth.value === 0 || duration === 0) {
+        isDragging.value = false;
+        thumbScale.value = withSpring(1, { damping: 10, stiffness: 150 });
+        runOnJS(setDragIndicator)(false);
+        return;
+      }
 
-        // Directly set animated value while dragging (no animation)
-        positionAnimatedValue.setValue(clampedX);
-      },
+      const clampedX = Math.max(0, Math.min(event.x, containerWidth.value));
+      const finalPosition = (clampedX / containerWidth.value) * duration;
 
-      onPanResponderRelease: (evt) => {
-        if (containerWidth === 0) {
-          setIsDragging(false);
-          return;
-        }
+      thumbScale.value = withSpring(1, { damping: 10, stiffness: 150 });
+      isDragging.value = false;
 
-        const locationX = evt.nativeEvent.locationX;
-        const clampedX = Math.max(0, Math.min(locationX, containerWidth));
-        const finalPosition = (clampedX / containerWidth) * duration;
-
-        // Scale down thumb with native driver
-        Animated.spring(thumbScale, {
-          toValue: 1,
-          friction: 3,
-          tension: 100,
-          useNativeDriver: true,
-        }).start();
-
-        // Perform seek
-        seekTo(finalPosition);
-
-        // Clear dragging state
-        setIsDragging(false);
-        setDragPosition(0);
-      },
-
-      onPanResponderTerminate: () => {
-        // Scale down thumb
-        Animated.spring(thumbScale, {
-          toValue: 1,
-          friction: 3,
-          tension: 100,
-          useNativeDriver: true,
-        }).start();
-
-        // Reset to current position
-        if (containerWidth > 0 && duration > 0) {
-          const progressPixels = (position / duration) * containerWidth;
-          positionAnimatedValue.stopAnimation();
-          positionAnimatedValue.setValue(progressPixels);
-        }
-
-        setIsDragging(false);
-        setDragPosition(0);
-      },
+      runOnJS(handleSeek)(finalPosition);
+      runOnJS(setDragIndicator)(false);
+      runOnJS(updateDisplayPos)(finalPosition);
+    })
+    .onFinalize(() => {
+      'worklet';
+      isDragging.value = false;
+      thumbScale.value = withSpring(1, { damping: 10, stiffness: 150 });
+      runOnJS(setDragIndicator)(false);
     });
-  }, [containerWidth, duration, seekTo, position]);
 
   const isDisabled = disabled || duration === 0;
+
+  // Animated styles
+  const progressFillStyle = useAnimatedStyle(() => {
+    return {
+      width: progressPosition.value,
+    };
+  });
+
+  const thumbContainerStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ translateX: progressPosition.value }],
+    };
+  });
+
+  const thumbStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: thumbScale.value }],
+    };
+  });
 
   return (
     <View style={styles.container}>
       {/* Seek bar */}
-      <View
-        style={styles.seekBarContainer}
-        onLayout={onLayout}
-        {...(containerWidth > 0 && !isDisabled ? panResponder.panHandlers : {})}
-      >
-        {/* Track background */}
-        <View style={[styles.track, isDisabled && styles.disabledTrack]} />
-
-        {/* Progress fill */}
-        <Animated.View
-          style={[
-            styles.progressFill,
-            {
-              width: positionAnimatedValue,
-            },
-            isDisabled && styles.disabledProgressFill,
-          ]}
-        />
-
-        {/* Thumb */}
-        <Animated.View
-          style={[
-            styles.thumbContainer,
-            {
-              transform: [
-                { translateX: positionAnimatedValue },
-              ],
-            },
-          ]}
-          pointerEvents="none"
+      <GestureDetector gesture={isDisabled ? Gesture.Pan() : panGesture}>
+        <View
+          style={styles.seekBarContainer}
+          onLayout={onLayout}
         >
+          {/* Track background */}
+          <View style={[styles.track, isDisabled && styles.disabledTrack]} />
+
+          {/* Progress fill */}
           <Animated.View
             style={[
-              styles.thumb,
-              {
-                transform: [{ scale: thumbScale }],
-              },
-              isDisabled && styles.disabledThumb,
+              styles.progressFill,
+              progressFillStyle,
+              isDisabled && styles.disabledProgressFill,
             ]}
+          />
+
+          {/* Thumb */}
+          <Animated.View
+            style={[
+              styles.thumbContainer,
+              thumbContainerStyle,
+            ]}
+            pointerEvents="none"
           >
-            {isDragging && (
-              <View style={styles.dragIndicator}>
-                <Text style={styles.dragTime}>
-                  {formatTime(dragPosition)}
-                </Text>
-              </View>
-            )}
+            <Animated.View
+              style={[
+                styles.thumb,
+                thumbStyle,
+                isDisabled && styles.disabledThumb,
+              ]}
+            >
+              {showDragIndicator && (
+                <View style={styles.dragIndicator}>
+                  <Text style={styles.dragTime}>
+                    {formatTime(displayPosition)}
+                  </Text>
+                </View>
+              )}
+            </Animated.View>
           </Animated.View>
-        </Animated.View>
-      </View>
+        </View>
+      </GestureDetector>
 
       {/* Time labels below */}
       <View style={styles.timeContainer}>

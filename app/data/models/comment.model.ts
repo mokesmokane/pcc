@@ -1,5 +1,5 @@
 import { Model } from '@nozbe/watermelondb';
-import { field, date, readonly, children, lazy } from '@nozbe/watermelondb/decorators';
+import { children, date, field, lazy, readonly } from '@nozbe/watermelondb/decorators';
 import { Q } from '@nozbe/watermelondb';
 
 export default class Comment extends Model {
@@ -41,7 +41,7 @@ export default class Comment extends Model {
     .then(reactions => {
       const summary = new Map();
       reactions.forEach((r: any) => {
-        const emoji = r.emoji;
+        const {emoji} = r;
         if (!summary.has(emoji)) {
           summary.set(emoji, { emoji, count: 0, userIds: [] });
         }

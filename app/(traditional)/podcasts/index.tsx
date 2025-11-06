@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
+  Alert,
+  Dimensions,
   FlatList,
   Image,
-  TouchableOpacity,
   StyleSheet,
-  Dimensions,
-  Alert,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -71,7 +71,6 @@ export default function PodcastsScreen() {
       matches.forEach((match) => {
         const titleMatch = match.match(/text="([^"]*)"/i);
         const xmlUrlMatch = match.match(/xmlUrl="([^"]*)"/i);
-        const htmlUrlMatch = match.match(/htmlUrl="([^"]*)"/i);
 
         if (titleMatch && xmlUrlMatch) {
           podcasts.push({
@@ -358,16 +357,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#E8E5E1',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  podcastTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#403837',
-    marginBottom: 4,
-  },
-  podcastAuthor: {
-    fontSize: 11,
-    color: '#8B8680',
   },
   emptyContainer: {
     flex: 1,

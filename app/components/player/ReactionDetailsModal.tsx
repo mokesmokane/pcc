@@ -1,22 +1,22 @@
 import React from 'react';
 import {
+  Image,
   Modal,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ScrollView,
-  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface ReactionDetail {
   emoji: string;
-  users: Array<{
+  users: {
     id: string;
     username: string;
     avatar?: string;
-  }>;
+  }[];
 }
 
 interface ReactionDetailsModalProps {

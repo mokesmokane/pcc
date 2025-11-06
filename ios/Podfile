@@ -16,9 +16,6 @@ prepare_react_native_project!
 target 'podcastclub' do
   use_expo_modules!
 
-  # Add simdjson pod for WatermelonDB
-  pod 'simdjson', :path => '../node_modules/@nozbe/simdjson'
-
   if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'
     config_command = ['node', '-e', "process.argv=['', '', 'config'];require('@react-native-community/cli').run()"];
   else

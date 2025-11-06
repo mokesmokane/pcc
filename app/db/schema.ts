@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 3, // Incremented for episode_details table
+  version: 6, // Reset database to fix queuing issues
   tables: [
     tableSchema({
       name: 'user_episode_progress',
@@ -196,6 +196,71 @@ export const schema = appSchema({
         { name: 'episode_id', type: 'string', isIndexed: true },
         { name: 'about', type: 'string' },
         { name: 'why_we_love_it', type: 'string' },
+        // Timestamps and sync
+        { name: 'created_at', type: 'number' },
+        { name: 'updated_at', type: 'number' },
+        { name: 'synced_at', type: 'number', isOptional: true },
+        { name: 'needs_sync', type: 'boolean' },
+      ],
+    }),
+    tableSchema({
+      name: 'notifications',
+      columns: [
+        { name: 'user_id', type: 'string', isIndexed: true },
+        { name: 'type', type: 'string', isIndexed: true },
+        { name: 'title', type: 'string' },
+        { name: 'message', type: 'string' },
+        { name: 'is_read', type: 'boolean', isIndexed: true },
+        { name: 'related_user_id', type: 'string', isOptional: true },
+        { name: 'related_entity_id', type: 'string', isOptional: true },
+        { name: 'related_entity_type', type: 'string', isOptional: true },
+        { name: 'action_url', type: 'string', isOptional: true },
+        { name: 'metadata', type: 'string', isOptional: true },
+        // Timestamps and sync
+        { name: 'created_at', type: 'number' },
+        { name: 'updated_at', type: 'number' },
+        { name: 'synced_at', type: 'number', isOptional: true },
+        { name: 'needs_sync', type: 'boolean' },
+      ],
+    }),
+    tableSchema({
+      name: 'discussion_questions',
+      columns: [
+        { name: 'episode_id', type: 'string', isIndexed: true },
+        { name: 'question', type: 'string' },
+        { name: 'question_type', type: 'string' },
+        { name: 'order_position', type: 'number' },
+        { name: 'image_url', type: 'string', isOptional: true },
+        // Timestamps and sync
+        { name: 'created_at', type: 'number' },
+        { name: 'updated_at', type: 'number' },
+        { name: 'synced_at', type: 'number', isOptional: true },
+        { name: 'needs_sync', type: 'boolean' },
+      ],
+    }),
+    tableSchema({
+      name: 'discussion_options',
+      columns: [
+        { name: 'question_id', type: 'string', isIndexed: true },
+        { name: 'value', type: 'number' },
+        { name: 'label', type: 'string' },
+        { name: 'emoji', type: 'string', isOptional: true },
+        { name: 'image_url', type: 'string', isOptional: true },
+        { name: 'order_position', type: 'number' },
+        // Timestamps and sync
+        { name: 'created_at', type: 'number' },
+        { name: 'updated_at', type: 'number' },
+        { name: 'synced_at', type: 'number', isOptional: true },
+        { name: 'needs_sync', type: 'boolean' },
+      ],
+    }),
+    tableSchema({
+      name: 'user_discussion_responses',
+      columns: [
+        { name: 'user_id', type: 'string', isIndexed: true },
+        { name: 'question_id', type: 'string', isIndexed: true },
+        { name: 'option_value', type: 'number' },
+        { name: 'response_type', type: 'string' }, // 'agree' or 'disagree'
         // Timestamps and sync
         { name: 'created_at', type: 'number' },
         { name: 'updated_at', type: 'number' },

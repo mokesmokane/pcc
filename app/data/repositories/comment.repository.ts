@@ -1,10 +1,20 @@
-import { Database } from '@nozbe/watermelondb';
+import { getRandomValues } from 'expo-crypto';
+import type { Database } from '@nozbe/watermelondb';
 import { Q } from '@nozbe/watermelondb';
 import { Observable } from '@nozbe/watermelondb/utils/rx';
 import { BaseRepository } from './base.repository';
-import Comment from '../models/comment.model';
-import CommentReaction from '../models/comment-reaction.model';
+import type Comment from '../models/comment.model';
+import type CommentReaction from '../models/comment-reaction.model';
 import { supabase } from '../../lib/supabase';
+import { v4 as uuidv4 } from 'uuid';
+
+// Polyfill crypto.getRandomValues for uuid library
+if (typeof global.crypto !== 'object') {
+  (global as any).crypto = {};
+}
+if (typeof global.crypto.getRandomValues !== 'function') {
+  global.crypto.getRandomValues = getRandomValues as any;
+}
 
 export interface Reaction {
   emoji: string;
@@ -14,6 +24,8 @@ export interface Reaction {
 
 export class CommentRepository extends BaseRepository<Comment> {
   private reactionCollection: any;
+  private lastSyncTime = new Map<string, number>();
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   constructor(database: Database) {
     super(database, 'comments');
@@ -89,7 +101,7 @@ export class CommentRepository extends BaseRepository<Comment> {
       .single();
 
     // Generate a proper UUID
-    const uuid = this.generateUUID();
+    const uuid = uuidv4();
 
     const comment = await this.create({
       id: uuid,
@@ -108,18 +120,12 @@ export class CommentRepository extends BaseRepository<Comment> {
     return comment;
   }
 
-  private generateUUID(): string {
-    // Generate a UUID v4
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0;
-      const v = c === 'x' ? r : (r & 0x3 | 0x8);
-      return v.toString(16);
-    });
-  }
-
   async toggleReaction(commentId: string, userId: string, emoji: string): Promise<boolean> {
-    return await this.database.write(async () => {
-      const existing = await this.reactionCollection
+    const reactionCollection = this.reactionCollection;
+    const syncReaction = this.syncReaction.bind(this);
+
+    return await this.database.write(async function toggleCommentReaction() {
+      const existing = await reactionCollection
         .query(
           Q.where('comment_id', commentId),
           Q.where('user_id', userId),
@@ -150,8 +156,8 @@ export class CommentRepository extends BaseRepository<Comment> {
         return false;
       } else {
         // Add reaction with UUID
-        const reactionId = this.generateUUID();
-        const newReaction = await this.reactionCollection.create((reaction: any) => {
+        const reactionId = uuidv4();
+        const newReaction = await reactionCollection.create((reaction: any) => {
           reaction._raw.id = reactionId;
           reaction._raw.comment_id = commentId;
           reaction._raw.user_id = userId;
@@ -162,7 +168,7 @@ export class CommentRepository extends BaseRepository<Comment> {
 
         // Trigger sync in background
         console.log('toggleReaction - Triggering sync for reaction:', reactionId);
-        this.syncReaction(reactionId).catch(err => {
+        syncReaction(reactionId).catch((err: Error) => {
           console.error('toggleReaction - Failed to sync reaction:', err);
         });
 
@@ -235,7 +241,7 @@ export class CommentRepository extends BaseRepository<Comment> {
     const summary = new Map<string, Reaction>();
 
     reactions.forEach((r: CommentReaction) => {
-      const emoji = r.emoji;
+      const {emoji} = r;
       if (!summary.has(emoji)) {
         summary.set(emoji, {
           emoji,
@@ -262,7 +268,7 @@ export class CommentRepository extends BaseRepository<Comment> {
           const summary = new Map<string, Reaction>();
 
           reactions.forEach((r: CommentReaction) => {
-            const emoji = r.emoji;
+            const {emoji} = r;
             if (!summary.has(emoji)) {
               summary.set(emoji, {
                 emoji,
@@ -324,8 +330,19 @@ export class CommentRepository extends BaseRepository<Comment> {
     });
   }
 
-  async syncWithRemote(episodeId: string): Promise<void> {
+  async syncWithRemote(episodeId: string, force = false): Promise<void> {
+    // Check cache age
+    const lastSync = this.lastSyncTime.get(episodeId) || 0;
+    const cacheAge = Date.now() - lastSync;
+
+    if (!force && cacheAge < this.CACHE_TTL) {
+      console.log(`✅ Comments cache valid for episode ${episodeId}, skipping sync`);
+      return;
+    }
+
     try {
+      console.log(`📥 Syncing comments for episode ${episodeId} (cache age: ${Math.round(cacheAge / 1000)}s)`);
+
       // Fetch comments from Supabase
       const { data: comments, error } = await supabase
         .rpc('get_episode_comments', {
@@ -368,6 +385,10 @@ export class CommentRepository extends BaseRepository<Comment> {
           }
         }
       }
+
+      // Update cache timestamp after successful sync
+      this.lastSyncTime.set(episodeId, Date.now());
+      console.log(`✅ Comments synced successfully for episode ${episodeId}`);
     } catch (error) {
       console.error('Failed to sync comments:', error);
       throw error;
@@ -380,9 +401,11 @@ export class CommentRepository extends BaseRepository<Comment> {
   }
 
   private async upsertReactionFromRemote(remoteData: any): Promise<void> {
-    await this.database.write(async () => {
+    const reactionCollection = this.reactionCollection;
+
+    await this.database.write(async function upsertReactionFromSupabase() {
       // First check if a reaction with this ID already exists
-      const existingById = await this.reactionCollection
+      const existingById = await reactionCollection
         .query(Q.where('id', remoteData.id))
         .fetch();
 
@@ -397,7 +420,7 @@ export class CommentRepository extends BaseRepository<Comment> {
       }
 
       // Check if this user already has a reaction for this comment/emoji combo
-      const existing = await this.reactionCollection
+      const existing = await reactionCollection
         .query(
           Q.where('comment_id', remoteData.comment_id),
           Q.where('user_id', remoteData.user_id),
@@ -406,7 +429,7 @@ export class CommentRepository extends BaseRepository<Comment> {
         .fetch();
 
       if (existing.length === 0) {
-        await this.reactionCollection.create((reaction: any) => {
+        await reactionCollection.create((reaction: any) => {
           reaction._raw.id = remoteData.id;
           reaction._raw.comment_id = remoteData.comment_id;
           reaction._raw.user_id = remoteData.user_id;
@@ -461,7 +484,7 @@ export class CommentRepository extends BaseRepository<Comment> {
         throw error;
       }
       if (data) {
-        await this.database.write(async () => {
+        await this.database.write(async function markReactionAsSynced() {
           await reactionData.update((r: any) => {
             r.needsSync = false;
             r.syncedAt = Date.now();

@@ -155,14 +155,13 @@ export function MeetupsSheet({
     loadMeetups,
     joinMeetup,
     leaveMeetup,
-    createMeetup
   } = useMeetups();
 
   useEffect(() => {
     if (episodeId && visible) {
       loadMeetups(episodeId);
     }
-  }, [episodeId, visible]);
+  }, [episodeId, visible, loadMeetups]);
 
   const insets = useSafeAreaInsets();
   const meetupsAnimatedValue = useRef(new Animated.Value(0)).current;
@@ -211,7 +210,7 @@ export function MeetupsSheet({
         useNativeDriver: true,
       }).start();
     }
-  }, [visible, expanded]);
+  }, [visible, expanded, meetupsAnimatedValue, meetupsTranslateY]);
 
   if (!visible) return null;
 
@@ -309,7 +308,7 @@ export function MeetupsSheet({
               <View style={styles.footerTextBox}>
                 <Text style={styles.footerText}>
                   No meetup in your hood? 😊 Honey, start{' '}
-                  your own and show 'em how it's done!
+                  your own and show &apos;em how it&apos;s done!
                 </Text>
               </View>
               <TouchableOpacity style={styles.addButton}>

@@ -1,4 +1,4 @@
-import { CountryCode } from '../components/CountryCodeSelector';
+import type { CountryCode } from '../components/CountryCodeSelector';
 
 type PhoneNumberValidation = {
   isValid: boolean;
@@ -186,7 +186,7 @@ export function normalizePhoneNumber(
 
   return {
     isValid: true,
-    normalizedNumber: normalizedNumber
+    normalizedNumber
   };
 }
 

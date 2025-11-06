@@ -1,5 +1,5 @@
 import { Model } from '@nozbe/watermelondb';
-import { field, date, readonly } from '@nozbe/watermelondb/decorators';
+import { date, field, readonly } from '@nozbe/watermelondb/decorators';
 
 export default class WeeklySelection extends Model {
   static table = 'weekly_selections';

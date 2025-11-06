@@ -14,10 +14,14 @@ import Meetup from '../data/models/meetup.model';
 import MeetupAttendee from '../data/models/meetup-attendee.model';
 import EpisodeMeetup from '../data/models/episode-meetup.model';
 import EpisodeDetails from '../data/models/episode-details.model';
+import Notification from '../data/models/notification.model';
+import DiscussionQuestion from '../data/models/discussion-question.model';
+import DiscussionOption from '../data/models/discussion-option.model';
+import UserDiscussionResponse from '../data/models/user-discussion-response.model';
 
 const adapter = new SQLiteAdapter({
   schema,
-  dbName: 'pcc_database_v14', // Added episode_details table
+  dbName: 'pcc_database_v18', // Reset to fix queuing issues
   jsi: false,
   onSetUpError: (error) => {
     console.error('Database setup error:', error);
@@ -40,6 +44,10 @@ const database = new Database({
     MeetupAttendee,
     EpisodeMeetup,
     EpisodeDetails,
+    Notification,
+    DiscussionQuestion,
+    DiscussionOption,
+    UserDiscussionResponse,
   ],
 });
 

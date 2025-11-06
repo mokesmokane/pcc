@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import * as Font from 'expo-font';
 
 export function SplashScreen({ onFinish }: { onFinish: () => void }) {

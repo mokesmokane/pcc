@@ -1,19 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  FlatList,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
   ActivityIndicator,
   Alert,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAudio } from '../../contexts/AudioContextExpo';
+import { useQueue, useCurrentTrackOnly } from '../../stores/audioStore.hooks';
 import { PodcastDetailHeader } from '../../components/PodcastDetailHeader';
+import { downloadService } from '../../services/download/download.service';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const DOWNLOADS_KEY = '@downloaded_episodes';
 
 interface Episode {
   id: string;
@@ -24,12 +28,15 @@ interface Episode {
   durationSeconds: number;
   audioUrl: string;
   artwork?: string;
+  isDownloaded?: boolean;
+  isDownloading?: boolean;
 }
 
 export default function PodcastDetailScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { addToQueue, playNext, clearQueue, currentTrack } = useAudio();
+  const { playNext } = useQueue();
+  const currentTrack = useCurrentTrackOnly();
 
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +59,28 @@ export default function PodcastDetailScreen() {
       });
       fetchEpisodes();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feedUrl, params.title, params.artwork, params.author]);
+
+  const checkDownloadStatus = async () => {
+    if (episodes.length === 0) return;
+
+    const updatedEpisodes = await Promise.all(
+      episodes.map(async (episode) => ({
+        ...episode,
+        isDownloaded: await downloadService.isDownloaded(episode.id),
+      }))
+    );
+
+    // Only update if download status actually changed
+    const hasChanges = updatedEpisodes.some((ep, idx) =>
+      ep.isDownloaded !== episodes[idx].isDownloaded
+    );
+
+    if (hasChanges) {
+      setEpisodes(updatedEpisodes);
+    }
+  };
 
   const fetchEpisodes = async () => {
     try {
@@ -63,6 +91,9 @@ export default function PodcastDetailScreen() {
       // Parse episodes from RSS feed
       const parsedEpisodes = parseRSSEpisodes(xmlText);
       setEpisodes(parsedEpisodes);
+
+      // Check download status after fetching
+      setTimeout(() => checkDownloadStatus(), 100);
 
       // Update podcast info if not provided
       if (!podcastInfo.artwork) {
@@ -134,7 +165,7 @@ export default function PodcastDetailScreen() {
           pubDate,
           duration,
           durationSeconds,
-          audioUrl: audioUrl,
+          audioUrl,
         });
       }
     }
@@ -229,6 +260,82 @@ export default function PodcastDetailScreen() {
     });
   };
 
+  const handleDownload = async (episode: Episode) => {
+    try {
+      await downloadService.queueDownload({
+        id: episode.id,
+        title: episode.title,
+        audioUrl: episode.audioUrl,
+      });
+
+      // Update episode download status
+      setEpisodes(prevEpisodes =>
+        prevEpisodes.map(e =>
+          e.id === episode.id ? { ...e, isDownloading: true } : e
+        )
+      );
+
+      // Save download metadata
+      await saveDownloadMetadata(episode);
+
+      Alert.alert('Download Started', `Downloading "${episode.title}"`);
+
+      // Refresh status after a delay
+      setTimeout(checkDownloadStatus, 2000);
+    } catch (_error) {
+      Alert.alert('Download Failed', 'Could not start download');
+    }
+  };
+
+  const saveDownloadMetadata = async (episode: Episode) => {
+    try {
+      const stored = await AsyncStorage.getItem(DOWNLOADS_KEY);
+      const downloads = stored ? JSON.parse(stored) : [];
+
+      // Check if already saved
+      const exists = downloads.some((d: { id: string }) => d.id === episode.id);
+      if (exists) return;
+
+      const newDownload = {
+        id: episode.id,
+        title: episode.title,
+        podcastTitle: podcastInfo.author || podcastInfo.title,
+        artwork: podcastInfo.artwork,
+        audioUrl: episode.audioUrl,
+        localPath: await downloadService.getDownloadedFilePath(episode.id),
+        downloadedAt: Date.now(),
+      };
+
+      downloads.push(newDownload);
+      await AsyncStorage.setItem(DOWNLOADS_KEY, JSON.stringify(downloads));
+    } catch (_error) {
+      // Silently fail - not critical
+    }
+  };
+
+  const handleDeleteDownload = async (episode: Episode) => {
+    Alert.alert(
+      'Delete Download',
+      `Delete downloaded episode "${episode.title}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await downloadService.deleteDownload(episode.id);
+              await checkDownloadStatus();
+              Alert.alert('Deleted', 'Download removed');
+            } catch (error) {
+              Alert.alert('Error', 'Could not delete download');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderEpisode = ({ item }: { item: Episode }) => {
     const isPlaying = currentTrack?.id === item.id;
 
@@ -260,12 +367,30 @@ export default function PodcastDetailScreen() {
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.moreButton}
-          onPress={() => handlePlayNext(item)}
-        >
-          <Ionicons name="play-skip-forward" size={20} color="#8B8680" />
-        </TouchableOpacity>
+        <View style={styles.episodeActions}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => handlePlayNext(item)}
+          >
+            <Ionicons name="play-skip-forward" size={20} color="#8B8680" />
+          </TouchableOpacity>
+
+          {item.isDownloaded ? (
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => handleDeleteDownload(item)}
+            >
+              <Ionicons name="checkmark-circle" size={20} color="#E05F4E" />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => handleDownload(item)}
+            >
+              <Ionicons name="download-outline" size={20} color="#8B8680" />
+            </TouchableOpacity>
+          )}
+        </View>
       </TouchableOpacity>
     );
   };
@@ -422,7 +547,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#8B8680',
   },
-  moreButton: {
+  episodeActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  actionButton: {
     padding: 8,
   },
 });

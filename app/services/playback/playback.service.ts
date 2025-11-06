@@ -1,4 +1,5 @@
-import { Audio, AVPlaybackStatus, AVPlaybackStatusSuccess } from 'expo-av';
+import type { AVPlaybackStatus, AVPlaybackStatusSuccess } from 'expo-av';
+import { Audio } from 'expo-av';
 import { throttle } from 'lodash';
 import { create } from 'zustand';
 

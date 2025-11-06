@@ -1,15 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
   Dimensions,
+  SafeAreaView,
+  StyleSheet,
+  Text,
   TouchableOpacity,
+  View,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useFonts, PaytoneOne_400Regular } from '@expo-google-fonts/paytone-one';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
 import { Ionicons } from '@expo/vector-icons';
+import { DiscussionFlow } from './components/DiscussionFlow';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -36,6 +37,7 @@ export default function EpisodeCompleteScreen() {
   });
   const [confetti, setConfetti] = useState<ConfettiPiece[]>([]);
   const [showOptions, setShowOptions] = useState(false);
+  const [showDiscussionFlow, setShowDiscussionFlow] = useState(false);
   const animationRef = useRef<number>(0);
 
   useEffect(() => {
@@ -171,8 +173,18 @@ export default function EpisodeCompleteScreen() {
   };
 
   const handleSeeDiscussion = () => {
-    // Navigate back to player with comments tab
+    setShowDiscussionFlow(true);
+  };
+
+  const handleCloseDiscussion = () => {
+    setShowDiscussionFlow(false);
+  };
+
+  const handleOpenComments = (topicId: string) => {
+    // Navigate back to player with comments tab and specific topic
+    console.log('Opening comments for topic:', topicId);
     router.back();
+    // TODO: Pass topicId to player to open specific discussion thread
   };
 
   if (!fontsLoaded) {
@@ -216,6 +228,13 @@ export default function EpisodeCompleteScreen() {
       <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
         {confetti.map(renderShape)}
       </View>
+
+      <DiscussionFlow
+        visible={showDiscussionFlow}
+        onClose={handleCloseDiscussion}
+        episodeId={params.episodeId as string || ''}
+        onOpenComments={handleOpenComments}
+      />
     </SafeAreaView>
   );
 }

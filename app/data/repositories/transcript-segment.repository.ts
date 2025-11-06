@@ -1,17 +1,22 @@
-import { Database } from '@nozbe/watermelondb';
+import type { Database } from '@nozbe/watermelondb';
 import { Q } from '@nozbe/watermelondb';
 import { Observable } from '@nozbe/watermelondb/utils/rx';
 import { BaseRepository } from './base.repository';
-import TranscriptSegment from '../models/transcript-segment.model';
+import type TranscriptSegment from '../models/transcript-segment.model';
 import { supabase } from '../../lib/supabase';
 
 export class TranscriptSegmentRepository extends BaseRepository<TranscriptSegment> {
+  private lastSyncTime = new Map<string, number>();
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
   constructor(database: Database) {
     super(database, 'transcript_segments');
   }
 
   async upsertFromRemote(remoteData: any): Promise<TranscriptSegment> {
-    const existing = await this.findById(remoteData.id);
+    // Ensure ID is a string (WatermelonDB requirement)
+    const segmentId = String(remoteData.id);
+    const existing = await this.findById(segmentId);
 
     const flatData = {
       episode_id: remoteData.episode_id,
@@ -24,10 +29,10 @@ export class TranscriptSegmentRepository extends BaseRepository<TranscriptSegmen
     };
 
     if (existing) {
-      return await this.update(remoteData.id, flatData as any);
+      return await this.update(segmentId, flatData as any);
     } else {
       return await this.create({
-        id: remoteData.id,
+        id: segmentId,
         ...flatData,
         created_at: remoteData.created_at ? new Date(remoteData.created_at).getTime() : Date.now(),
         updated_at: remoteData.updated_at ? new Date(remoteData.updated_at).getTime() : Date.now(),
@@ -79,8 +84,19 @@ export class TranscriptSegmentRepository extends BaseRepository<TranscriptSegmen
     });
   }
 
-  async syncWithRemote(episodeId: string): Promise<void> {
+  async syncWithRemote(episodeId: string, force = false): Promise<void> {
+    // Check cache age
+    const lastSync = this.lastSyncTime.get(episodeId) || 0;
+    const cacheAge = Date.now() - lastSync;
+
+    if (!force && cacheAge < this.CACHE_TTL) {
+      console.log(`✅ Transcript cache valid for episode ${episodeId}, skipping sync`);
+      return;
+    }
+
     try {
+      console.log(`📥 Syncing transcript for episode ${episodeId} (cache age: ${Math.round(cacheAge / 1000)}s)`);
+
       // Fetch segments from Supabase
       const { data: segments, error } = await supabase
         .from('transcript_segments')
@@ -92,7 +108,8 @@ export class TranscriptSegmentRepository extends BaseRepository<TranscriptSegmen
 
       if (segments && segments.length > 0) {
         // Batch upsert all segments
-        await this.database.write(async () => {
+        const collection = this.collection;
+        await this.database.write(async function batchSyncTranscriptSegments() {
           for (let i = 0; i < segments.length; i++) {
             const segment = segments[i];
 
@@ -102,7 +119,7 @@ export class TranscriptSegmentRepository extends BaseRepository<TranscriptSegmen
             // Check if segment with this specific ID exists
             let existing;
             try {
-              existing = await this.collection.find(segmentId);
+              existing = await collection.find(segmentId);
             } catch {
               existing = null;
             }
@@ -120,7 +137,7 @@ export class TranscriptSegmentRepository extends BaseRepository<TranscriptSegmen
               });
             } else {
               // Create new segment
-              await this.collection.create((record: any) => {
+              await collection.create((record: any) => {
                 record._raw.id = segmentId;
                 record._raw.episode_id = String(segment.episode_id);
                 record._raw.start_seconds = Number(segment.start_seconds);
@@ -135,6 +152,10 @@ export class TranscriptSegmentRepository extends BaseRepository<TranscriptSegmen
             }
           }
         });
+
+        // Update cache timestamp after successful sync
+        this.lastSyncTime.set(episodeId, Date.now());
+        console.log(`✅ Transcript synced successfully for episode ${episodeId} (${segments.length} segments)`);
       }
     } catch (error) {
       console.error('Failed to sync transcript segments:', error);

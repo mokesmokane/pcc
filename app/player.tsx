@@ -19,9 +19,8 @@ import { PlayerHeader } from './components/player/PlayerHeader';
 import { SleepTimerModal } from './components/player/SleepTimerModal';
 import { TranscriptSection } from './components/player/TranscriptSection';
 import { TranscriptSheet } from './components/player/TranscriptSheet';
-import { useAudio } from './contexts/AudioContextExpo';
+import { useAudioPlayer } from './stores/audioStore.hooks';
 import { useComments } from './contexts/CommentsContext';
-import { usePodcastMetadata } from './contexts/PodcastMetadataContext';
 import { downloadService } from './services/downloadService';
 import InPersonClubSection from './components/InPersonClubSection';
 import PoddleboxSection from './components/PoddleboxSection';
@@ -149,9 +148,8 @@ export default function PlayerScreen() {
     seekTo,
     addToQueue,
     playNow,
-  } = useAudio();
+  } = useAudioPlayer();
   const { submitComment, getReplies, addReaction } = useComments();
-  const { getEpisodeProgress } = usePodcastMetadata();
 
   const [showSleepTimer, setShowSleepTimer] = useState(false);
   const [showPlaybackRate, setShowPlaybackRate] = useState(false);
@@ -621,9 +619,9 @@ export default function PlayerScreen() {
       <UpNextSheet
         visible={showUpNext}
         onClose={() => setShowUpNext(false)}
-        onTrackPress={async (track) => {
+        onTrackPress={(track) => {
           // Navigate to the selected track from queue
-          const progress = await getEpisodeProgress(track.id);
+          // The track already has savedPosition and savedDuration from UpNextSheet
           router.push({
             pathname: '/player',
             params: {
@@ -633,8 +631,8 @@ export default function PlayerScreen() {
               trackArtwork: track.artwork,
               trackAudioUrl: track.url,
               trackDescription: track.description,
-              trackDuration: progress?.totalDuration?.toString() || track.duration?.toString() || '0',
-              trackPosition: progress?.currentPosition?.toString() || '0',
+              trackDuration: track.savedDuration?.toString() || track.duration?.toString() || '0',
+              trackPosition: track.savedPosition?.toString() || '0',
             },
           });
         }}

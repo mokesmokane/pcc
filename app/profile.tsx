@@ -1,31 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Image,
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from './contexts/AuthContext';
-import { useProfile } from './contexts/ProfileContext';
+import { useCurrentProfile, useUpdateProfile, useProfileInitials } from './hooks/queries/useProfile';
 import { styles } from './profile.styles';
 import { useRouter } from 'expo-router';
-import { useAudio } from './contexts/AudioContextExpo';
-import { useFonts, PaytoneOne_400Regular } from '@expo-google-fonts/paytone-one';
+import { useCurrentTrackOnly } from './stores/audioStore.hooks';
+import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { currentTrack } = useAudio();
-  const { profile, loading, updateProfile, getInitials } = useProfile();
+  const currentTrack = useCurrentTrackOnly();
+  const { data: profile, isLoading: loading } = useCurrentProfile();
+  const updateProfileMutation = useUpdateProfile();
+  const initials = useProfileInitials();
   const [username, setUsername] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -121,18 +123,14 @@ export default function ProfileScreen() {
 
     setSaving(true);
     try {
-      const success = await updateProfile(
-        username.trim() || null,
-        avatarUri || undefined
-      );
+      await updateProfileMutation.mutateAsync({
+        username: username.trim() || null,
+        avatarUrl: avatarUri || undefined,
+      });
 
-      if (success) {
-        Alert.alert('Success', 'Profile updated successfully!');
-        setAvatarUri(null); // Clear the new avatar URI since it's been saved
-        setHasChanges(false);
-      } else {
-        Alert.alert('Error', 'Failed to update profile. Please try again.');
-      }
+      Alert.alert('Success', 'Profile updated successfully!');
+      setAvatarUri(null); // Clear the new avatar URI since it's been saved
+      setHasChanges(false);
     } catch (error) {
       console.error('Error saving profile:', error);
       Alert.alert('Error', 'An unexpected error occurred. Please try again.');
@@ -195,7 +193,7 @@ export default function ProfileScreen() {
                 <Image source={{ uri: displayAvatar }} style={styles.avatar} />
               ) : (
                 <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarText}>{getInitials()}</Text>
+                  <Text style={styles.avatarText}>{initials}</Text>
                 </View>
               )}
             </View>

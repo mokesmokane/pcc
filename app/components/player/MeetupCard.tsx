@@ -24,12 +24,12 @@ interface MeetupCardProps {
 }
 
 export function MeetupCard({
-  id,
+  _id,
   location,
   meetupDate,
   meetupTime,
   venue,
-  address,
+  _address,
   attendees = [],
   attendeeCount,
   spotsLeft,

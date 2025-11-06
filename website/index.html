@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Podcast Club - Like a book club, but for podcasts</title>
+    <meta name="description" content="Join us and discover, listen, and discuss podcasts together. Connect with curious minds and grow your community, one podcast at a time.">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="favicon.png">
+
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Paytone+One&family=Onest:wght@400;500;600;700&family=Caveat:wght@400&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header" id="header">
+        <div class="container">
+            <div class="header-content">
+                <a href="#" class="logo">
+                    <span class="logo-text">
+                        <span class="logo-line logo-line-1">POD</span>
+                        <span class="logo-line logo-line-2">CAST</span>
+                        <span class="logo-line logo-line-3">CLUB</span>
+                    </span>
+                </a>
+                <nav class="nav" id="nav">
+                    <ul class="nav-list">
+                        <li><a href="#home" class="nav-link active">Home</a></li>
+                        <li><a href="#how-it-works" class="nav-link">How it works</a></li>
+                        <li><a href="#reviews" class="nav-link">Reviews</a></li>
+                        <li><a href="#ethos" class="nav-link">Ethos</a></li>
+                        <li><a href="#about" class="nav-link">About</a></li>
+                        <li><a href="#contact" class="nav-link">Contact</a></li>
+                    </ul>
+                </nav>
+                <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="container">
+            <div class="badge badge-yellow badge-launch">Launching 1 Dec 2025</div>
+            <div class="hero-content">
+                <h1 class="hero-title">Like a book club,<br>but for podcasts</h1>
+                <p class="hero-subtitle">Join us and discover, listen, and discuss podcasts together. Connect with curious minds and grow your community, one podcast at a time.</p>
+
+                <form class="signup-form" id="heroForm">
+                    <input type="text" placeholder="First name" class="form-input" required>
+                    <input type="email" placeholder="Email" class="form-input" required>
+                    <button type="submit" class="btn btn-dark">Save me a spot 👉</button>
+                </form>
+            </div>
+            <div class="badge badge-yellow badge-sticker badge-spots">Only 100 spots<br>available for<br>launch. Don't<br>miss out!</div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="how-it-works">
+        <div class="container">
+            <div class="features-grid">
+                <!-- Feature 1: Listen -->
+                <div class="feature-card">
+                    <div class="feature-image-wrapper">
+                        <img src="assets/images/onboard2.png" alt="Person listening to podcasts" class="feature-image">
+                        <div class="feature-icon icon-rectangles">
+                            <svg width="20" height="80" viewBox="0 0 23 99" fill="none">
+                                <rect width="23" height="99" rx="11.5" fill="#E29160"/>
+                            </svg>
+                            <svg width="20" height="80" viewBox="0 0 23 99" fill="none">
+                                <rect width="23" height="99" rx="11.5" fill="#E05F4E"/>
+                            </svg>
+                            <svg width="20" height="80" viewBox="0 0 23 99" fill="none">
+                                <rect width="23" height="99" rx="11.5" fill="#E05F4E"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="feature-content">
+                        <span class="feature-label">LISTEN</span>
+                        <h3 class="feature-title">3 Options. 1 Choice.<br>0 Overwhelm.</h3>
+                        <p class="feature-description">Endless scrolling? Decision fatigue? Not on our watch. Just three curated podcasts and you're off. (You're welcome.)</p>
+                    </div>
+                </div>
+
+                <!-- Feature 2: Discuss -->
+                <div class="feature-card">
+                    <div class="feature-image-wrapper">
+                        <img src="assets/images/onboard1.png" alt="People discussing over coffee" class="feature-image">
+                        <div class="feature-icon icon-play">
+                            <svg width="80" height="92" viewBox="0 0 89 102" fill="none">
+                                <path d="M9 90.8369L9 11.1631L78 51L9 90.8369Z" stroke="#E05F4E" stroke-width="18" stroke-linejoin="round" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="feature-content">
+                        <span class="feature-label">DISCUSS</span>
+                        <h3 class="feature-title">Discuss your ideas over<br>coffee, a pint or a walk</h3>
+                        <p class="feature-description">Connect with curious minds and grow your community, one podcast at a time.</p>
+                    </div>
+                </div>
+
+                <!-- Feature 3: Grow -->
+                <div class="feature-card">
+                    <div class="feature-image-wrapper">
+                        <img src="assets/images/onboard3.png" alt="Colorful doorway" class="feature-image">
+                        <div class="feature-icon icon-star">
+                            <svg width="100" height="100" viewBox="0 0 134 144" fill="none">
+                                <path d="M67 0L78.2696 44.5985L120.165 25.6027L92.3225 62.2203L133.295 83.1314L87.3071 84.1943L96.5041 129.266L67 93.9737L37.4959 129.266L46.693 84.1943L0.704903 83.1314L41.6775 62.2203L13.8355 25.6027L55.7304 44.5985L67 0Z" fill="#E05F4E"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="feature-content">
+                        <span class="feature-label">GROW</span>
+                        <h3 class="feature-title">Expand your world</h3>
+                        <p class="feature-description">We include episodes you'd never pick yourself. We love you - but let's be real, you're kind of predictable.</p>
+                    </div>
+                </div>
+
+                <!-- Feature 4: Together -->
+                <div class="feature-card">
+                    <div class="feature-image-wrapper">
+                        <img src="assets/images/onboard4.png" alt="Person with binoculars" class="feature-image">
+                        <div class="feature-icon icon-circle">
+                            <svg width="85" height="85" viewBox="0 0 119 119" fill="none">
+                                <circle cx="59.5" cy="59.5" r="49" stroke="#E05F4E" stroke-width="21"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="feature-content">
+                        <span class="feature-label">TOGETHER</span>
+                        <h3 class="feature-title">Accountability. But not<br>the boring kind</h3>
+                        <p class="feature-description">You'll see who else is listening - and they'll see if you ghost. No pressure. (Okay, maybe just a little.)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials" id="reviews">
+        <div class="container">
+            <h2 class="section-title">What our (future) community<br>are (might be) saying</h2>
+
+            <div class="testimonials-carousel">
+                <button class="carousel-btn carousel-btn-prev" id="prevBtn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+
+                <div class="testimonials-track" id="testimonialsTrack">
+                    <div class="testimonial-card">
+                        <div class="stars">★★★★★</div>
+                        <p class="testimonial-text">OMG I love podcast club! It has become part of my weekly ritual and I love having a group to finally chat podcasts with!</p>
+                        <div class="testimonial-author">
+                            <img src="https://i.pravatar.cc/100?img=12" alt="John" class="author-avatar">
+                            <div class="author-info">
+                                <div class="author-name">John</div>
+                                <div class="author-label">verified user/stock photo model</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="testimonial-card">
+                        <div class="stars">★★★★★</div>
+                        <p class="testimonial-text">I didnt realise what life was until I found podcast club, I wouldnt be surprised if it quickly becomes a religion. Hopefully one with MEGA churches</p>
+                        <div class="testimonial-author">
+                            <img src="https://i.pravatar.cc/100?img=45" alt="Sarah" class="author-avatar">
+                            <div class="author-info">
+                                <div class="author-name">Sarah</div>
+                                <div class="author-label">verified user/ai genned avatar</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="testimonial-card">
+                        <div class="stars">★★★★★</div>
+                        <p class="testimonial-text">It's fine</p>
+                        <div class="testimonial-author">
+                            <img src="https://i.pravatar.cc/100?img=33" alt="Marcus" class="author-avatar">
+                            <div class="author-info">
+                                <div class="author-name">Marcus</div>
+                                <div class="author-label">user</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="testimonial-card">
+                        <div class="stars">★★★★★</div>
+                        <p class="testimonial-text">OMG I love podcast club! It has become part of my weekly ritual and I love having a group to finally chat podcasts with!</p>
+                        <div class="testimonial-author">
+                            <img src="https://i.pravatar.cc/100?img=27" alt="Emma" class="author-avatar">
+                            <div class="author-info">
+                                <div class="author-name">Emma</div>
+                                <div class="author-label">verified user</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="carousel-btn carousel-btn-next" id="nextBtn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="wave-decoration">
+                <svg viewBox="0 0 600 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M150 20C158 8, 167 8, 175 20C183 32, 192 32, 200 20C208 8, 217 8, 225 20C233 32, 242 32, 250 20C258 8, 267 8, 275 20C283 32, 292 32, 300 20C308 8, 317 8, 325 20C333 32, 342 32, 350 20C358 8, 367 8, 375 20C383 32, 392 32, 400 20C408 8, 417 8, 425 20C433 32, 442 32, 450 20" stroke="#FFFFFF" stroke-width="4" fill="none"/>
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <!-- Ethos Section -->
+    <section class="ethos" id="ethos">
+        <div class="container">
+            <h2 class="section-title section-title-dark">Our Ethos</h2>
+            <p class="section-subtitle">Podcast Club aims to embody these core values</p>
+
+            <div class="ethos-grid">
+                <!-- Value 1: Dialog -->
+                <div class="ethos-card">
+                    <img src="assets/gifs/dialog.gif?v=2" alt="Dialog" class="ethos-image">
+                    <h3 class="ethos-title">Dialog</h3>
+                    <p class="ethos-description">We believe that dialog is key to understanding. Whilst listening to expert speakers talk on interesting topics can be entertaining and informative, for us, the real value and laughing on top of those ideas provides further creative insight.</p>
+                </div>
+
+                <!-- Value 2: Synchronicity -->
+                <div class="ethos-card">
+                    <img src="assets/gifs/Sync.gif?v=2" alt="Synchronicity" class="ethos-image">
+                    <h3 class="ethos-title">Synchronicity</h3>
+                    <p class="ethos-description">All too often nowadays enables us to consume various forms of content whenever it pleases us. Binge watching an entire Netflix series in a night, for example. As a result, the extra sense of community that shared experience brings. 2. We value the extra sense of community that shared experience brings.</p>
+                </div>
+
+                <!-- Value 3: Discovery -->
+                <div class="ethos-card">
+                    <img src="assets/gifs/Discover.gif?v=2" alt="Discovery" class="ethos-image">
+                    <h3 class="ethos-title">Discovery</h3>
+                    <p class="ethos-description">The most rewarding experiences you can have will be out of your comfort zone. We believe that listening to an eclectic set of ideas that you wouldn't typically listen to is exactly the way you can expand your horizons.</p>
+                </div>
+
+                <!-- Value 4: Challenge -->
+                <div class="ethos-card">
+                    <img src="assets/gifs/challenge.gif?v=2" alt="Challenge" class="ethos-image">
+                    <h3 class="ethos-title">Challenge</h3>
+                    <p class="ethos-description">Be ready to have your opinion challenged and be on the front foot to (politely) challenge others. This is no echo chamber. We like structured arguments, as well as the willingness to alter them in light of someone else's insight are virtues to be honest and treasured.</p>
+                </div>
+
+                <!-- Value 5: Growth -->
+                <div class="ethos-card">
+                    <img src="assets/gifs/growth.gif?v=2" alt="Growth" class="ethos-image">
+                    <h3 class="ethos-title">Growth</h3>
+                    <p class="ethos-description">Something we take on serious topics that really matter and can be difficult to discuss. We believe that having an environment where even controversial perspectives (held opinions can be discussed in good faith is essential for personal and societal growth.</p>
+                </div>
+
+                <!-- Value 6: Fun -->
+                <div class="ethos-card">
+                    <img src="assets/gifs/fun.gif?v=2" alt="Fun" class="ethos-image">
+                    <h3 class="ethos-title">Fun</h3>
+                    <p class="ethos-description">Above all we believe conversation about fascinating topics is really fun! And we keep coming back because we can't get enough of it.</p>
+                </div>
+            </div>
+
+            <div class="wave-decoration wave-decoration-bottom">
+                <svg viewBox="0 0 600 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M150 20C158 8, 167 8, 175 20C183 32, 192 32, 200 20C208 8, 217 8, 225 20C233 32, 242 32, 250 20C258 8, 267 8, 275 20C283 32, 292 32, 300 20C308 8, 317 8, 325 20C333 32, 342 32, 350 20C358 8, 367 8, 375 20C383 32, 392 32, 400 20C408 8, 417 8, 425 20C433 32, 442 32, 450 20" stroke="#403837" stroke-width="2" fill="none"/>
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <!-- Story Section -->
+    <section class="story" id="about">
+        <div class="container">
+            <h2 class="section-title section-title-dark">How it all began</h2>
+
+            <div class="story-content">
+                <div class="story-text">
+                    <h3 class="story-subtitle">Podcast Club was created by Martin O'Kane out of a desire for Conversation and Community</h3>
+                    <p class="story-description">We've all had those conversations at parties or social events where you and a friend or new acquaintance discover you've recently read the same book, saw the same documentary or listened to the same podcast. You share ideas and insights and it's an incredibly rewarding experience.</p>
+                    <p class="story-description">Podcast club is an attempt to engineer those framed conversations on a regular basis, with the only overhead being listening to a podcast for an hour or two...</p>
+                </div>
+
+                <div class="story-image-wrapper">
+                    <img src="assets/images/mokes2.jpg" alt="Podcast Club community" class="story-image">
+                    <div class="story-star story-star-red story-star-top-left">
+                        <svg width="100" height="100" viewBox="0 0 134 144" fill="none">
+                            <path d="M67 0L78.2696 44.5985L120.165 25.6027L92.3225 62.2203L133.295 83.1314L87.3071 84.1943L96.5041 129.266L67 93.9737L37.4959 129.266L46.693 84.1943L0.704903 83.1314L41.6775 62.2203L13.8355 25.6027L55.7304 44.5985L67 0Z" fill="#E05F4E"/>
+                        </svg>
+                    </div>
+                    <div class="story-star story-star-black story-star-top-right">
+                        <svg width="100" height="100" viewBox="0 0 134 144" fill="none">
+                            <path d="M67 0L78.2696 44.5985L120.165 25.6027L92.3225 62.2203L133.295 83.1314L87.3071 84.1943L96.5041 129.266L67 93.9737L37.4959 129.266L46.693 84.1943L0.704903 83.1314L41.6775 62.2203L13.8355 25.6027L55.7304 44.5985L67 0Z" fill="#403837"/>
+                        </svg>
+                    </div>
+                    <div class="story-star story-star-red story-star-bottom-left">
+                        <svg width="100" height="100" viewBox="0 0 134 144" fill="none">
+                            <path d="M67 0L78.2696 44.5985L120.165 25.6027L92.3225 62.2203L133.295 83.1314L87.3071 84.1943L96.5041 129.266L67 93.9737L37.4959 129.266L46.693 84.1943L0.704903 83.1314L41.6775 62.2203L13.8355 25.6027L55.7304 44.5985L67 0Z" fill="#E05F4E"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer CTA Section -->
+    <footer class="footer-cta" id="contact">
+        <div class="container">
+            <div class="badge badge-yellow badge-launch-footer">Launching 1 Dec 2025</div>
+
+            <h2 class="section-title">Save your spot</h2>
+            <p class="footer-subtitle">Only 100 spots available for launch. Don't miss out!</p>
+
+            <form class="signup-form signup-form-footer" id="footerForm">
+                <input type="text" placeholder="First name" class="form-input" required>
+                <input type="email" placeholder="Email" class="form-input" required>
+                <button type="submit" class="btn btn-dark">Save me a spot 👉</button>
+            </form>
+
+            <div class="badge badge-pink badge-footer-left">
+                <span class="badge-circle-text">
+                    <span style="color: #F4F5F4;">POD</span><br>
+                    <span style="color: #F4F5F4;">CAST</span><br>
+                    <span style="color: rgba(255, 255, 255, 0.6);">CLUB</span><br>
+                    <small class="badge-tagline" style="color: rgba(255, 255, 255, 1);">Listen. Discuss.<br>Grow. Together.</small>
+                </span>
+            </div>
+
+            <div class="badge badge-green badge-footer-right">
+                <span class="badge-circle-text">
+                    <span style="color: #E0FC52;">POD</span><br>
+                    <span style="color: #E0FC52;">CAST</span><br>
+                    <span style="color: rgba(255, 255, 255, 0.6);">CLUB</span><br>
+                    <small class="badge-tagline" style="color: rgba(255, 255, 255, 1);">Listen. Discuss.<br>Grow. Together.</small>
+                </span>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <div class="container">
+                <div class="footer-bottom-content">
+                    <p class="copyright">© 2025 Podcast Club</p>
+                    <p class="contact">hello@podcastclub.co.uk</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

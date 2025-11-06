@@ -82,9 +82,9 @@ export function getCurrentSegments(
 
   segments.forEach((segment, index) => {
     if (index <= safeIndex) {
-      currentText += segment.text + ' ';
+      currentText += `${segment.text  } `;
     } else {
-      upcomingText += segment.text + ' ';
+      upcomingText += `${segment.text  } `;
     }
   });
 

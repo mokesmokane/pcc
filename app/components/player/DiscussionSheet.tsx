@@ -1,11 +1,11 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  KeyboardAvoidingView,
   PanResponder,
+  Platform,
   StyleSheet,
   View,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MiniPlayer } from './MiniPlayer';
@@ -34,7 +34,7 @@ interface DiscussionSheetProps {
 }
 
 export function DiscussionSheet({
-  visible,
+  _visible,
   expanded,
   onToggleExpand,
   episodeId,
@@ -51,26 +51,23 @@ export function DiscussionSheet({
   const discussionTranslateY = useRef(new Animated.Value(0)).current;
   const { comments, loadComments, submitComment, addReaction, getReplies } = useComments();
   const [showReplySheet, setShowReplySheet] = useState(false);
-  const [selectedComment, setSelectedComment] = useState<any>(null);
-  const [replies, setReplies] = useState<any[]>([]);
-  const [loadingReplies, setLoadingReplies] = useState(false);
+  const [selectedComment, setSelectedComment] = useState<{ id: string; author: string; text: string } | null>(null);
+  const [replies, setReplies] = useState<Array<{ id: string; author: string; avatar?: string; text: string; time: string }>>([]);
 
   // Load comments when episode changes
   useEffect(() => {
     if (episodeId) {
       loadComments(episodeId);
     }
-  }, [episodeId]);
+  }, [episodeId, loadComments]);
 
   // Load replies when a comment is selected
   useEffect(() => {
     if (selectedComment && episodeId) {
-      setLoadingReplies(true);
       getReplies(episodeId, selectedComment.id)
-        .then(setReplies)
-        .finally(() => setLoadingReplies(false));
+        .then(setReplies);
     }
-  }, [selectedComment, episodeId]);
+  }, [selectedComment, episodeId, getReplies]);
 
   const discussionPanResponder = useRef(
     PanResponder.create({
@@ -118,7 +115,7 @@ export function DiscussionSheet({
       duration: 300,
       useNativeDriver: true,
     }).start();
-  }, [expanded]);
+  }, [expanded, discussionAnimatedValue]);
 
   const progress = duration > 0 ? (position / duration) * 100 : 0;
 

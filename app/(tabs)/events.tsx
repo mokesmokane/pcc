@@ -1,6 +1,6 @@
 import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
 import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MeetupsList } from '../components/player/MeetupsList';
 import { useMeetups } from '../contexts/MeetupsContext';
@@ -22,8 +22,15 @@ export default function EventsScreen() {
 
   // Load all upcoming meetups on mount
   useEffect(() => {
+    console.log('EventsScreen: useEffect triggered, calling loadAllMeetups');
+    console.log('EventsScreen: loadAllMeetups is:', typeof loadAllMeetups);
     loadAllMeetups();
-  }, []);
+  }, [loadAllMeetups]);
+
+  // Debug: Log meetups state
+  useEffect(() => {
+    console.log('EventsScreen: meetups state:', meetups?.length || 0, 'loading:', loading);
+  }, [meetups, loading]);
 
   return (
     <SafeAreaView style={styles.container} edges={[]}>

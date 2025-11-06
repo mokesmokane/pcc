@@ -1,5 +1,7 @@
-import { Audio, AVPlaybackStatus, AVPlaybackStatusSuccess } from 'expo-av';
+import type { AVPlaybackStatus} from 'expo-av';
+import { Audio, AVPlaybackStatusSuccess } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { trackAudioError } from '../errorTracking/errorTrackingService';
 
 export interface Track {
   id: string;
@@ -28,6 +30,7 @@ class ExpoAudioService {
   // Callbacks for state updates
   private onPlaybackStatusUpdate?: (status: AVPlaybackStatus) => void;
   private onTrackChange?: (track: Track | null) => void;
+  private onGetSavedPosition?: (trackId: string) => Promise<number | undefined>;
 
   // Private constructor for singleton
   private constructor() {
@@ -59,6 +62,9 @@ class ExpoAudioService {
       this.isInitialized = true;
     } catch (error) {
       console.error('Error initializing audio:', error);
+      trackAudioError(error as Error, undefined, undefined, {
+        action: 'initialize',
+      });
     }
   }
 
@@ -81,6 +87,9 @@ class ExpoAudioService {
       console.log('Loaded queue from storage:', this.queue.length, 'tracks');
     } catch (error) {
       console.error('Error loading queue from storage:', error);
+      trackAudioError(error as Error, undefined, undefined, {
+        action: 'loadQueueFromStorage',
+      });
     }
   }
 
@@ -105,6 +114,10 @@ class ExpoAudioService {
     this.onTrackChange = callback;
   }
 
+  setOnGetSavedPosition(callback: (trackId: string) => Promise<number | undefined>) {
+    this.onGetSavedPosition = callback;
+  }
+
   async addTrack(track: Track): Promise<void> {
     const queuedTrack: QueuedTrack = { ...track };
     this.queue.push(queuedTrack);
@@ -125,40 +138,143 @@ class ExpoAudioService {
   }
 
   async playTrackNow(track: Track, startPosition?: number): Promise<void> {
-    // Stop current playback if any
-    if (this.currentSound) {
-      try {
-        await this.currentSound.stopAsync();
-        await this.currentSound.unloadAsync();
-      } catch (error) {
-        console.error('Error stopping current sound:', error);
+    try {
+      // Stop current playback if any
+      if (this.currentSound) {
+        try {
+          await this.currentSound.stopAsync();
+          await this.currentSound.unloadAsync();
+        } catch (error) {
+          console.error('Error stopping current sound:', error);
+          trackAudioError(error as Error, track.id, track.title, {
+            action: 'playTrackNow_stop',
+          });
+        }
+        this.currentSound = null;
       }
-      this.currentSound = null;
+
+      const queuedTrack: QueuedTrack = { ...track };
+
+      // Insert at the front of the queue
+      this.queue.unshift(queuedTrack);
+
+      // If we had a current track, increment the index since we inserted at front
+      if (this.currentIndex >= 0) {
+        this.currentIndex++;
+      }
+
+      // Save queue to storage
+      await this.saveQueueToStorage();
+
+      // Load the new track at index 0
+      await this.loadTrack(0);
+
+      // Seek to start position if provided
+      if (startPosition !== undefined && startPosition > 0) {
+        await this.seekTo(startPosition);
+      }
+
+      // Now play
+      await this.play();
+    } catch (error) {
+      console.error('Error playing track now:', error);
+      trackAudioError(error as Error, track.id, track.title, {
+        action: 'playTrackNow',
+        startPosition,
+      });
+    }
+  }
+
+  async removeTrack(trackId: string): Promise<void> {
+    const trackIndex = this.queue.findIndex(track => track.id === trackId);
+
+    if (trackIndex === -1) {
+      console.log('Track not found in queue:', trackId);
+      return;
     }
 
-    const queuedTrack: QueuedTrack = { ...track };
+    const isCurrentTrack = trackIndex === this.currentIndex;
+    const removedTrack = this.queue[trackIndex];
 
-    // Insert at the front of the queue
-    this.queue.unshift(queuedTrack);
-
-    // If we had a current track, increment the index since we inserted at front
-    if (this.currentIndex >= 0) {
-      this.currentIndex++;
+    // Clean up sound object if it exists
+    if (removedTrack.sound && removedTrack.sound !== this.currentSound) {
+      try {
+        await removedTrack.sound.unloadAsync();
+      } catch (error) {
+        console.error('Error unloading removed track:', error);
+      }
     }
 
-    // Save queue to storage
-    await this.saveQueueToStorage();
+    // If removing current track, stop playback and play next
+    if (isCurrentTrack) {
+      if (this.currentSound) {
+        try {
+          await this.currentSound.stopAsync();
+          await this.currentSound.unloadAsync();
+        } catch (error) {
+          console.error('Error stopping current track:', error);
+        }
+        this.currentSound = null;
+      }
 
-    // Load the new track at index 0
-    await this.loadTrack(0);
+      // Remove the track
+      this.queue.splice(trackIndex, 1);
 
-    // Seek to start position if provided
-    if (startPosition !== undefined && startPosition > 0) {
-      await this.seekTo(startPosition);
+      // Save updated queue
+      await this.saveQueueToStorage();
+
+      // Load next track if available
+      if (this.currentIndex < this.queue.length) {
+        const nextTrack = this.queue[this.currentIndex];
+        await this.loadTrack(this.currentIndex);
+
+        // Try to restore saved position
+        if (this.onGetSavedPosition && nextTrack) {
+          try {
+            const savedPosition = await this.onGetSavedPosition(nextTrack.id);
+            if (savedPosition !== undefined && savedPosition > 0) {
+              await this.seekTo(savedPosition);
+            }
+          } catch (error) {
+            console.error('Error restoring saved position:', error);
+          }
+        }
+        await this.play();
+      } else if (this.currentIndex > 0) {
+        // If we removed the last track, go back one
+        this.currentIndex = this.queue.length - 1;
+        if (this.currentIndex >= 0) {
+          await this.loadTrack(this.currentIndex);
+        } else {
+          // Queue is empty
+          if (this.onTrackChange) {
+            this.onTrackChange(null);
+          }
+        }
+      } else {
+        // Queue is empty
+        this.currentIndex = -1;
+        if (this.onTrackChange) {
+          this.onTrackChange(null);
+        }
+      }
+    } else {
+      // Removing a non-current track
+      this.queue.splice(trackIndex, 1);
+
+      // Adjust current index if needed
+      if (trackIndex < this.currentIndex) {
+        this.currentIndex--;
+      }
+
+      // Save updated queue
+      await this.saveQueueToStorage();
+
+      // Notify about queue change
+      if (this.onTrackChange) {
+        this.onTrackChange(this.getCurrentTrack());
+      }
     }
-
-    // Now play
-    await this.play();
   }
 
   async clearQueue(): Promise<void> {
@@ -186,6 +302,8 @@ class ExpoAudioService {
       return;
     }
 
+    const track = this.queue[index];
+
     // CRITICAL: Stop and unload ANY existing sound before loading new one
     if (this.currentSound) {
       try {
@@ -195,6 +313,10 @@ class ExpoAudioService {
         await this.currentSound.unloadAsync();
       } catch (error) {
         console.error('Error stopping/unloading previous sound:', error);
+        trackAudioError(error as Error, track.id, track.title, {
+          action: 'loadTrack_cleanup',
+          index,
+        });
       }
       this.currentSound = null;
     }
@@ -216,8 +338,6 @@ class ExpoAudioService {
         }
       }
     }
-
-    const track = this.queue[index];
 
     try {
       const { sound } = await Audio.Sound.createAsync(
@@ -241,6 +361,11 @@ class ExpoAudioService {
       }
     } catch (error) {
       console.error('Error loading track:', error);
+      trackAudioError(error as Error, track.id, track.title, {
+        action: 'loadTrack',
+        index,
+        url: track.url,
+      });
     }
   }
 
@@ -251,14 +376,14 @@ class ExpoAudioService {
 
     // Handle track ending
     if (status.isLoaded && status.didJustFinish && !status.isLooping) {
-      // Auto-play next track if available
-      if (this.currentIndex < this.queue.length - 1) {
-        this.skipToNext();
-      }
+      // Remove the finished track from queue and play next
+      this.removeCurrentTrackAndPlayNext();
     }
   }
 
   async play(): Promise<void> {
+    const track = this.getCurrentTrack();
+
     if (!this.currentSound) {
       // If no sound is loaded but we have tracks, load the first one
       if (this.queue.length > 0 && this.currentIndex === -1) {
@@ -279,6 +404,9 @@ class ExpoAudioService {
         }
       } catch (error) {
         console.error('Error playing:', error);
+        trackAudioError(error as Error, track?.id, track?.title, {
+          action: 'play',
+        });
       }
     }
   }
@@ -286,43 +414,132 @@ class ExpoAudioService {
   async pause(): Promise<void> {
     if (!this.currentSound) return;
 
+    const track = this.getCurrentTrack();
     try {
       await this.currentSound.pauseAsync();
     } catch (error) {
       console.error('Error pausing:', error);
+      trackAudioError(error as Error, track?.id, track?.title, {
+        action: 'pause',
+      });
     }
   }
 
   async stop(): Promise<void> {
     if (!this.currentSound) return;
 
+    const track = this.getCurrentTrack();
     try {
       await this.currentSound.stopAsync();
     } catch (error) {
       console.error('Error stopping:', error);
+      trackAudioError(error as Error, track?.id, track?.title, {
+        action: 'stop',
+      });
     }
   }
 
   async seekTo(seconds: number): Promise<void> {
     if (!this.currentSound) return;
 
+    const track = this.getCurrentTrack();
     try {
       await this.currentSound.setPositionAsync(seconds * 1000); // Convert to milliseconds
     } catch (error) {
       console.error('Error seeking:', error);
+      trackAudioError(error as Error, track?.id, track?.title, {
+        action: 'seekTo',
+        seconds,
+      });
+    }
+  }
+
+  private async removeCurrentTrackAndPlayNext(): Promise<void> {
+    if (this.currentIndex >= 0 && this.currentIndex < this.queue.length) {
+      // Remove the current track from the queue
+      const removedTrack = this.queue.splice(this.currentIndex, 1)[0];
+      console.log('Removed finished track from queue:', removedTrack.title);
+
+      // Clean up sound object if it exists
+      if (removedTrack.sound) {
+        try {
+          await removedTrack.sound.unloadAsync();
+        } catch (error) {
+          console.error('Error unloading finished track:', error);
+        }
+      }
+
+      this.currentSound = null;
+
+      // Save updated queue
+      await this.saveQueueToStorage();
+
+      // Play next track if available (currentIndex now points to what was the next track)
+      if (this.currentIndex < this.queue.length) {
+        const nextTrack = this.queue[this.currentIndex];
+        await this.loadTrack(this.currentIndex);
+
+        // Try to restore saved position if callback is available
+        if (this.onGetSavedPosition && nextTrack) {
+          try {
+            const savedPosition = await this.onGetSavedPosition(nextTrack.id);
+            if (savedPosition !== undefined && savedPosition > 0) {
+              await this.seekTo(savedPosition);
+            }
+          } catch (error) {
+            console.error('Error restoring saved position after removing track:', error);
+          }
+        }
+
+        await this.play();
+      } else {
+        // No more tracks in queue
+        console.log('Queue is now empty');
+        if (this.onTrackChange) {
+          this.onTrackChange(null);
+        }
+      }
     }
   }
 
   async skipToNext(): Promise<void> {
     if (this.currentIndex < this.queue.length - 1) {
+      const nextTrack = this.queue[this.currentIndex + 1];
       await this.loadTrack(this.currentIndex + 1);
+
+      // Try to restore saved position if callback is available
+      if (this.onGetSavedPosition && nextTrack) {
+        try {
+          const savedPosition = await this.onGetSavedPosition(nextTrack.id);
+          if (savedPosition !== undefined && savedPosition > 0) {
+            await this.seekTo(savedPosition);
+          }
+        } catch (error) {
+          console.error('Error restoring saved position on skip to next:', error);
+        }
+      }
+
       await this.play();
     }
   }
 
   async skipToPrevious(): Promise<void> {
     if (this.currentIndex > 0) {
+      const prevTrack = this.queue[this.currentIndex - 1];
       await this.loadTrack(this.currentIndex - 1);
+
+      // Try to restore saved position if callback is available
+      if (this.onGetSavedPosition && prevTrack) {
+        try {
+          const savedPosition = await this.onGetSavedPosition(prevTrack.id);
+          if (savedPosition !== undefined && savedPosition > 0) {
+            await this.seekTo(savedPosition);
+          }
+        } catch (error) {
+          console.error('Error restoring saved position on skip to previous:', error);
+        }
+      }
+
       await this.play();
     } else if (this.currentSound) {
       // If we're at the first track, just restart it
@@ -391,10 +608,14 @@ class ExpoAudioService {
   async getStatus(): Promise<AVPlaybackStatus | null> {
     if (!this.currentSound) return null;
 
+    const track = this.getCurrentTrack();
     try {
       return await this.currentSound.getStatusAsync();
     } catch (error) {
       console.error('Error getting status:', error);
+      trackAudioError(error as Error, track?.id, track?.title, {
+        action: 'getStatus',
+      });
       return null;
     }
   }

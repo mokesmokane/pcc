@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  Modal,
   FlatList,
-  TextInput,
-  StyleSheet,
+  Modal,
   SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 export type CountryCode = {

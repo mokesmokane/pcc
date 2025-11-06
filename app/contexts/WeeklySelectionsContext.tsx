@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useMemo } from 'react';
+import type { ReactNode} from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useDatabase } from './DatabaseContext';
 import { useAuth } from './AuthContext';
-import WeeklySelection from '../data/models/weekly-selection.model';
+import type WeeklySelection from '../data/models/weekly-selection.model';
 
 export interface WeeklyPodcast {
   id: string;
@@ -208,6 +209,50 @@ export const WeeklySelectionsProvider: React.FC<WeeklySelectionsProviderProps> =
   useEffect(() => {
     loadSelections();
   }, [user?.id]);
+
+  // Subscribe to WatermelonDB changes for weekly selections (reactive)
+  useEffect(() => {
+    console.log('📅 Setting up WatermelonDB observable for weekly selections...');
+
+    const subscription = weeklySelectionRepository.observeCurrentWeekSelections()
+      .subscribe(async (dbSelections) => {
+        console.log('📅 WatermelonDB OBSERVABLE FIRED - Weekly selections:', dbSelections.length);
+
+        // Transform and update selections
+        const transformed = await transformSelections(dbSelections);
+        const withMemberCounts = await Promise.all(
+          transformed.map(async (podcast) => {
+            const count = await weeklySelectionRepository.getEpisodeMemberCount(podcast.id);
+            return { ...podcast, clubMembers: count };
+          })
+        );
+
+        const selectionMap = new Map<string, WeeklyPodcast>();
+        withMemberCounts.forEach(podcast => {
+          selectionMap.set(podcast.id, podcast);
+        });
+        setSelections(selectionMap);
+
+        // Update user choices if they exist
+        if (user?.id) {
+          const choiceIds = await weeklySelectionRepository.getUserWeeklyChoices(user.id);
+          if (choiceIds.length > 0) {
+            const choices = choiceIds
+              .map(id => selectionMap.get(id))
+              .filter((p): p is WeeklyPodcast => p !== undefined);
+            setUserChoices(choices);
+            setUserChoice(choices[0] || null);
+          }
+        }
+      });
+
+    console.log('📅 WatermelonDB observable subscribed for weekly selections');
+
+    return () => {
+      subscription.unsubscribe();
+      console.log('📅 Unsubscribed from weekly selections observable');
+    };
+  }, [weeklySelectionRepository, episodeDetailsRepository, user?.id]);
 
   const value = useMemo(
     () => ({

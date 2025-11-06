@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState, useRef } from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View, GestureResponderEvent } from 'react-native';
+import React, { useRef, useState } from 'react';
+import type { GestureResponderEvent } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ReactionPicker } from './ReactionPicker';
 import { ReactionDetailsModal } from './ReactionDetailsModal';
 
 // Component to render text with styled @mentions
-const MentionText = ({ text, style, validUsernames = [] }: { text: string; style?: any; validUsernames?: string[] }) => {
+const MentionText = ({ text, style, validUsernames = [] }: { text: string; style?: object; validUsernames?: string[] }) => {
   // Split text by @mentions pattern
   const parts = text.split(/(@\w+)/g);
 
@@ -52,14 +53,14 @@ interface CommentProps {
   onReply?: () => void;
   onReact?: (emoji: string) => void;
   onMore?: () => void;
-  onFetchReactionDetails?: () => Promise<any[]>;
+  onFetchReactionDetails?: () => Promise<Array<{ id: string; userName: string; avatar?: string; emoji: string }>>;
   threadParticipants?: string[];
   onViewReplies?: () => void;
-  onFetchReplies?: () => Promise<any[]>;
+  onFetchReplies?: () => Promise<Array<{ id: string; author: string; avatar?: string; text: string; time: string }>>;
 }
 
 export function Comment({
-  id,
+  _id,
   author,
   avatar,
   text,
@@ -79,10 +80,9 @@ export function Comment({
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [reactionPosition, setReactionPosition] = useState({ x: 0, y: 0 });
   const [showReactionDetails, setShowReactionDetails] = useState(false);
-  const [reactionDetails, setReactionDetails] = useState<any[]>([]);
+  const [reactionDetails, setReactionDetails] = useState<Array<{ id: string; userName: string; avatar?: string; emoji: string }>>([]);
   const [expanded, setExpanded] = useState(false);
-  const [inlineReplies, setInlineReplies] = useState<any[]>([]);
-  const [loadingReplies, setLoadingReplies] = useState(false);
+  const [inlineReplies, setInlineReplies] = useState<Array<{ id: string; author: string; avatar?: string; text: string; time: string }>>([]);
   const commentRef = useRef<View>(null);
 
   const handleLongPress = (event: GestureResponderEvent) => {
@@ -241,7 +241,7 @@ export function Comment({
           {/* Inline replies when expanded */}
           {expanded && inlineReplies.length > 0 && (
             <View style={styles.inlineReplies}>
-              {inlineReplies.map((reply: any, index: number) => (
+              {inlineReplies.map((reply) => (
                 <View key={reply.id} style={styles.inlineReplyContainer}>
                   <View style={styles.inlineReply}>
                     <View style={styles.inlineReplyAvatar}>
@@ -263,7 +263,7 @@ export function Comment({
                       <MentionText
                         text={reply.text}
                         style={styles.inlineReplyText}
-                        validUsernames={[author, ...inlineReplies.map((r: any) => r.author)]}
+                        validUsernames={[author, ...inlineReplies.map((r) => r.author)]}
                       />
                     </View>
                   </View>
@@ -395,11 +395,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     gap: 4,
-  },
-  reactionBubbleActive: {
-    backgroundColor: '#FFE8E5',
-    borderWidth: 1,
-    borderColor: '#E05F4E',
   },
   reactionEmojis: {
     flexDirection: 'row',

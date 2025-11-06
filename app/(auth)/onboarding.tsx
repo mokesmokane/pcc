@@ -133,9 +133,9 @@ export default function OnboardingScreen() {
     };
 
     checkUserRouting();
-  }, [user, loading]);
+  }, [user, loading, router]);
 
-  const handleScroll = (event: any) => {
+  const handleScroll = (event: { nativeEvent: { contentOffset: { x: number } } }) => {
     const slideIndex = Math.round(event.nativeEvent.contentOffset.x / screenWidth);
     setCurrentSlide(slideIndex);
   };
@@ -257,20 +257,6 @@ const styles = StyleSheet.create({
     zIndex: 10,
     backgroundColor: 'transparent',
   },
-  header: {
-    paddingBottom: 12,
-    flexDirection: 'column',
-    justifyContent: 'flex-start',
-    alignItems: 'flex-start',
-    alignSelf: 'flex-start',
-  },
-  brandName: {
-    fontSize: 24,
-    fontFamily: 'PaytoneOne_400Regular',
-    lineHeight: 26,
-    color: '#E05F4E',
-    letterSpacing: -1,
-  },
   brandNameRed: {
     fontSize: 24,
     fontFamily: 'GrandBold',
@@ -382,17 +368,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#FFFFFF',
-  },
-  adminButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#E8DED5',
-    borderRadius: 8,
-  },
-  adminButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#E05F4E',
   },
   shapeContainer: {
     position: 'absolute',

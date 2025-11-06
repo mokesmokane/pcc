@@ -1,29 +1,29 @@
 import { Tabs, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import { Platform, View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MiniPlayer } from '../components/player/MiniPlayer';
 import { ProfileMenu } from '../components/ProfileMenu';
-import { useAudio } from '../contexts/AudioContextExpo';
+import { InviteFriendsModal } from '../components/InviteFriendsModal';
+import { NotificationsModal } from '../components/NotificationsModal';
+import { usePlaybackState, usePlaybackControls, useCurrentTrack } from '../stores/audioStore.hooks';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfile } from '../contexts/ProfileContext';
+import { useNotifications } from '../contexts/NotificationsContext';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const { user } = useAuth();
   const { profile } = useProfile();
-  const {
-    currentTrack,
-    isPlaying,
-    position,
-    duration,
-    play,
-    pause,
-    skipBackward,
-  } = useAudio();
+  const { unreadCount } = useNotifications();
+  const { isPlaying } = usePlaybackState();
+  const { play, pause, skipBackward } = usePlaybackControls();
+  const { currentTrack, position, duration } = useCurrentTrack();
 
   return (
     <>
@@ -52,12 +52,25 @@ export default function TabLayout() {
                 </TouchableOpacity>
 
                 <View style={styles.rightSection}>
-                  <TouchableOpacity style={styles.inviteButton}>
+                  <TouchableOpacity
+                    style={styles.inviteButton}
+                    onPress={() => setShowInviteModal(true)}
+                  >
                     <Text style={styles.inviteButtonText}>Invite friends</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity style={styles.iconButton}>
+                  <TouchableOpacity
+                    style={styles.iconButton}
+                    onPress={() => setShowNotificationsModal(true)}
+                  >
                     <Ionicons name="notifications-outline" size={24} color="#403837" />
+                    {unreadCount > 0 && (
+                      <View style={styles.notificationBadge}>
+                        <Text style={styles.notificationBadgeText}>
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </Text>
+                      </View>
+                    )}
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.iconButton} onPress={() => setShowProfileMenu(true)}>
                     <Ionicons name="person-circle-outline" size={28} color="#403837" />
@@ -138,15 +151,21 @@ export default function TabLayout() {
         onClose={() => setShowProfileMenu(false)}
         userName={profile?.firstName || user?.email || 'User'}
       />
+
+      <InviteFriendsModal
+        visible={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+      />
+
+      <NotificationsModal
+        visible={showNotificationsModal}
+        onClose={() => setShowNotificationsModal(false)}
+      />
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F4F1ED',
-  },
   headerContainer: {
     backgroundColor: '#F4F1ED',
   },
@@ -155,7 +174,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12
+    paddingTop: 12
   },
   miniPlayerContainer: {
     position: 'absolute',
@@ -165,6 +184,24 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     padding: 4,
+    position: 'relative',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#E05F4E',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  notificationBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '600',
   },
   inviteButton: {
     backgroundColor: '#FFFFFF',

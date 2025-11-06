@@ -47,8 +47,8 @@
     </div>
 
     <div class="icon-container">
-        <h3>Splash Screen (1284x2778 - iPhone 14 Pro)</h3>
-        <canvas id="splash" width="1284" height="2778"></canvas>
+        <h3>Splash Screen (2048x2048 - Square)</h3>
+        <canvas id="splash" width="2048" height="2048"></canvas>
         <br>
         <button onclick="downloadIcon('splash', 'splash.png')">Download Splash</button>
     </div>
@@ -85,69 +85,59 @@
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
-            const fontSize = size * 0.22; // Increased from 0.16 to fill more space
+            const fontSize = size * 0.18; // Reduced from 0.22 to add more padding
             ctx.font = `${fontSize}px GrandBold`;
 
             // Draw POD
             ctx.fillStyle = '#E5DFD3';
-            ctx.fillText('POD', centerX, centerY - fontSize * 1);
+            ctx.fillText('POD', centerX, centerY - fontSize * .8);
 
             // Draw CAST
             ctx.fillStyle = '#E5DFD3';
-            ctx.fillText('CAST', centerX, centerY - fontSize * 0.15);
+            ctx.fillText('CAST', centerX, centerY + fontSize * 0.05);
 
             // Draw CLUB
             ctx.fillStyle = '#FFFFFF';
             ctx.globalAlpha = 0.85;
-            ctx.fillText('CLUB', centerX, centerY + fontSize * 0.7);
+            ctx.fillText('CLUB', centerX, centerY + fontSize * 0.9);
             ctx.globalAlpha = 1.0;
-
-            // Draw tagline in smaller text
-            const taglineFontSize = size * 0.045; // Increased from 0.032
-            ctx.font = `${taglineFontSize}px Caveat`;
-            ctx.fillStyle = '#F8F6F3';
-            ctx.fillText('LISTEN. DISCUSS.', centerX, centerY + fontSize * 1.4);
-            ctx.fillText('GROW. TOGETHER.', centerX, centerY + fontSize * 1.4 + taglineFontSize * 1.1);
         }
 
         function drawSplash(canvas) {
             const ctx = canvas.getContext('2d');
-            const width = canvas.width;
-            const height = canvas.height;
-            const centerX = width / 2;
-            const centerY = height / 2;
+            const size = canvas.width; // Square
+            const centerX = size / 2;
+            const centerY = size / 2;
 
             // Background - solid orange/red color
             ctx.fillStyle = '#E05F4E';
-            ctx.fillRect(0, 0, width, height);
+            ctx.fillRect(0, 0, size, size);
 
             // Set up text rendering
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
 
-            const fontSize = width * 0.2; // Scale to width for splash
+            // Calculate font size to fill the square
+            const fontSize = size * 0.28; // Larger since only 3 words
             ctx.font = `${fontSize}px GrandBold`;
+
+            // Vertically center the three words with spacing
+            const totalHeight = fontSize * 2.5; // Total height of text block
+            const startY = centerY - totalHeight / 2;
 
             // Draw POD
             ctx.fillStyle = '#E5DFD3';
-            ctx.fillText('POD', centerX, centerY - fontSize * 1);
+            ctx.fillText('POD', centerX, startY + fontSize * .4);
 
             // Draw CAST
             ctx.fillStyle = '#E5DFD3';
-            ctx.fillText('CAST', centerX, centerY - fontSize * 0.15);
+            ctx.fillText('CAST', centerX, startY + fontSize * 1.3);
 
             // Draw CLUB
             ctx.fillStyle = '#FFFFFF';
             ctx.globalAlpha = 0.85;
-            ctx.fillText('CLUB', centerX, centerY + fontSize * 0.7);
+            ctx.fillText('CLUB', centerX, startY + fontSize * 2.2);
             ctx.globalAlpha = 1.0;
-
-            // Draw tagline
-            const taglineFontSize = width * 0.055;
-            ctx.font = `${taglineFontSize}px Caveat`;
-            ctx.fillStyle = '#F8F6F3';
-            ctx.fillText('LISTEN. DISCUSS.', centerX, centerY + fontSize * 1.4);
-            ctx.fillText('GROW. TOGETHER.', centerX, centerY + fontSize * 1.4 + taglineFontSize * 1.1);
         }
 
         function downloadIcon(canvasId, filename) {

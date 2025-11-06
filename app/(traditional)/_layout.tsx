@@ -33,6 +33,15 @@ export default function TraditionalLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="downloaded"
+        options={{
+          title: 'Downloaded',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="download-outline" size={size} color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

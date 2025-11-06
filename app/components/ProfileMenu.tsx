@@ -130,7 +130,7 @@ export function ProfileMenu({ visible, onClose, userName }: ProfileMenuProps) {
         }),
       ]).start();
     }
-  }, [visible]);
+  }, [visible, slideAnim, fadeAnim]);
 
   if (!visible && slideAnim._value === MENU_WIDTH) {
     return null;
@@ -172,7 +172,7 @@ export function ProfileMenu({ visible, onClose, userName }: ProfileMenuProps) {
 
           {/* Menu Items */}
           <View style={styles.menuItems}>
-            {MENU_ITEMS.map((item, index) => (
+            {MENU_ITEMS.map((item) => (
               <TouchableOpacity
                 key={item.id}
                 style={styles.menuItem}
@@ -195,7 +195,7 @@ export function ProfileMenu({ visible, onClose, userName }: ProfileMenuProps) {
               >
                 <View style={styles.menuItemContent}>
                   <Ionicons
-                    name={item.icon as any}
+                    name={item.icon as keyof typeof Ionicons.glyphMap}
                     size={24}
                     color={item.iconColor || '#8B8680'}
                   />

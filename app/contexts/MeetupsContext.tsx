@@ -1,8 +1,11 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { MeetupsService, Meetup } from '../services/meetups';
+import type { ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import type { Meetup } from '../services/meetups';
+import { MeetupsService } from '../services/meetups';
 import { useDatabase } from './DatabaseContext';
 import { useAuth } from './AuthContext';
 import { Alert } from 'react-native';
+import { isPodcastClubEpisode } from '../utils/episodeUtils';
 
 interface MeetupsContextType {
   meetups: Meetup[];
@@ -50,9 +53,19 @@ export function MeetupsProvider({ children }: { children: ReactNode }) {
   }, [database]);
 
   // Load meetups for an episode
-  const loadMeetups = async (episodeId: string) => {
+  const loadMeetups = useCallback(async (episodeId: string) => {
     if (!meetupsService || !episodeId) {
       console.log('MeetupsContext: Cannot load - service or episodeId missing', { meetupsService: !!meetupsService, episodeId });
+      return;
+    }
+
+    // Skip loading for non-Podcast Club episodes (traditional podcast player)
+    if (!isPodcastClubEpisode(episodeId)) {
+      console.log('MeetupsContext - Skipping meetups load for non-Podcast Club episode:', episodeId);
+      setCurrentEpisodeId(episodeId);
+      setMeetups([]);
+      setLoading(false);
+      setError(null);
       return;
     }
 
@@ -85,10 +98,10 @@ export function MeetupsProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [meetupsService, user]);
 
   // Load all upcoming meetups (not filtered by episode)
-  const loadAllMeetups = async () => {
+  const loadAllMeetups = useCallback(async () => {
     if (!meetupsService) {
       console.log('MeetupsContext: Cannot load all - service missing');
       return;
@@ -123,7 +136,7 @@ export function MeetupsProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [meetupsService, user]);
 
   // Subscribe to meetup changes
   useEffect(() => {

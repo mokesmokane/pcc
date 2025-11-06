@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
   Dimensions,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useFonts, PaytoneOne_400Regular } from '@expo-google-fonts/paytone-one';
+import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
 import { styles } from './success.styles';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -76,7 +76,7 @@ export default function SuccessScreen() {
         y: -20,
         rotation: Math.random() * 360,
         color: colors[Math.floor(Math.random() * colors.length)],
-        shape: ['rectangle', 'triangle', 'circle'][Math.floor(Math.random() * 3)] as any,
+        shape: ['rectangle', 'triangle', 'circle'][Math.floor(Math.random() * 3)] as 'rectangle' | 'triangle' | 'circle',
         size: Math.random() * 8 + 4,
         velocityX: (Math.random() - 0.5) * 4,
         velocityY: Math.random() * topBlastForce + 2,
@@ -93,7 +93,7 @@ export default function SuccessScreen() {
         y: screenHeight + 20,
         rotation: Math.random() * 360,
         color: colors[Math.floor(Math.random() * colors.length)],
-        shape: ['rectangle', 'triangle', 'circle'][Math.floor(Math.random() * 3)] as any,
+        shape: ['rectangle', 'triangle', 'circle'][Math.floor(Math.random() * 3)] as 'rectangle' | 'triangle' | 'circle',
         size: Math.random() * 8 + 4,
         velocityX: (Math.random() - 0.5) * 4,
         velocityY: -(Math.random() * bottomBlastForce + 5), // Much stronger upward force
@@ -109,7 +109,7 @@ export default function SuccessScreen() {
         y: Math.random() * screenHeight,
         rotation: Math.random() * 360,
         color: colors[Math.floor(Math.random() * colors.length)],
-        shape: ['rectangle', 'triangle', 'circle'][Math.floor(Math.random() * 3)] as any,
+        shape: ['rectangle', 'triangle', 'circle'][Math.floor(Math.random() * 3)] as 'rectangle' | 'triangle' | 'circle',
         size: Math.random() * 8 + 4,
         velocityX: Math.random() * sideBlastForce + 3, // rightward motion
         velocityY: (Math.random() - 0.5) * 4,
@@ -125,7 +125,7 @@ export default function SuccessScreen() {
         y: Math.random() * screenHeight,
         rotation: Math.random() * 360,
         color: colors[Math.floor(Math.random() * colors.length)],
-        shape: ['rectangle', 'triangle', 'circle'][Math.floor(Math.random() * 3)] as any,
+        shape: ['rectangle', 'triangle', 'circle'][Math.floor(Math.random() * 3)] as 'rectangle' | 'triangle' | 'circle',
         size: Math.random() * 8 + 4,
         velocityX: -(Math.random() * sideBlastForce + 3), // leftward motion
         velocityY: (Math.random() - 0.5) * 4,
@@ -235,7 +235,7 @@ export default function SuccessScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>You're in!</Text>
+        <Text style={styles.title}>You&apos;re in!</Text>
         <Text style={styles.title}>Welcome to</Text>
         <Text style={styles.title}>the club</Text>
       </View>

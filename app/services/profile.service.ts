@@ -16,7 +16,7 @@ class ProfileService {
   async getProfile(userId: string): Promise<UserProfile | null> {
     try {
       // First try to get existing profile
-      let { data, error } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)

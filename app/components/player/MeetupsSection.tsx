@@ -1,6 +1,6 @@
 import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
 import React, { useEffect } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { MeetupCard } from './MeetupCard';
 import { useMeetups } from '../../contexts/MeetupsContext';
 
@@ -25,12 +25,9 @@ export function MeetupsSection({ episodeId, onViewAll }: MeetupsSectionProps) {
 
   useEffect(() => {
     if (episodeId) {
-      console.log('MeetupsSection: Loading meetups for episode:', episodeId);
       loadMeetups(episodeId);
-    } else {
-      console.log('MeetupsSection: No episodeId provided');
     }
-  }, [episodeId]);
+  }, [episodeId, loadMeetups]);
 
   const firstMeetup = meetups[0];
 

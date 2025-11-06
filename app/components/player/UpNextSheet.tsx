@@ -1,19 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  FlatList,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
-  Modal,
+  Alert,
   Animated,
   Dimensions,
+  FlatList,
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
-import { useAudio } from '../../contexts/AudioContextExpo';
-import { usePodcastMetadata } from '../../contexts/PodcastMetadataContext';
+import { useQueue, useCurrentTrackOnly } from '../../stores/audioStore.hooks';
+import { useMultipleEpisodeProgress } from '@/hooks/queries/usePodcastMetadata';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -24,13 +25,32 @@ interface UpNextSheetProps {
 }
 
 export function UpNextSheet({ visible, onClose, onTrackPress }: UpNextSheetProps) {
-  const { queue, currentTrack } = useAudio();
-  const { getEpisodeProgress } = usePodcastMetadata();
-  const [tracks, setTracks] = useState<any[]>([]);
+  const { queue, removeFromQueue } = useQueue();
+  const currentTrack = useCurrentTrackOnly();
   const [isClosing, setIsClosing] = useState(false);
   const slideAnim = React.useRef(new Animated.Value(SCREEN_HEIGHT)).current;
   const [fontsLoaded] = useFonts({
     PaytoneOne_400Regular,
+  });
+
+  // Remove duplicates by ID
+  const uniqueTracks = queue.filter((track, index, self) =>
+    index === self.findIndex((t) => t.id === track.id)
+  );
+
+  // Get all episode IDs for batch progress loading
+  const episodeIds = uniqueTracks.map(track => track.id);
+  const { data: progressMap } = useMultipleEpisodeProgress(episodeIds);
+
+  // Combine tracks with progress data
+  const tracks = uniqueTracks.map((track) => {
+    const progress = progressMap?.get(track.id);
+    return {
+      ...track,
+      progressPercentage: progress?.progressPercentage || 0,
+      savedPosition: progress?.currentPosition || 0,
+      savedDuration: progress?.totalDuration || track.duration || 0,
+    };
   });
 
   useEffect(() => {
@@ -57,32 +77,28 @@ export function UpNextSheet({ visible, onClose, onTrackPress }: UpNextSheetProps
     });
   };
 
-  useEffect(() => {
-    const loadTracksWithProgress = async () => {
-      // Combine current track and queue, avoiding duplicates
-      const allTracks = currentTrack ? [currentTrack, ...queue] : queue;
+  const handleLongPress = (item: any) => {
+    const isCurrentTrack = currentTrack?.id === item.id;
 
-      // Remove duplicates by ID
-      const uniqueTracks = allTracks.filter((track, index, self) =>
-        index === self.findIndex((t) => t.id === track.id)
-      );
-
-      const tracksWithProgress = await Promise.all(
-        uniqueTracks.map(async (track) => {
-          const progress = await getEpisodeProgress(track.id);
-          return {
-            ...track,
-            progressPercentage: progress?.progressPercentage || 0,
-          };
-        })
-      );
-      setTracks(tracksWithProgress);
-    };
-
-    if (visible) {
-      loadTracksWithProgress();
-    }
-  }, [queue, currentTrack, visible]);
+    Alert.alert(
+      item.title,
+      undefined,
+      [
+        {
+          text: 'Remove from Queue',
+          style: 'destructive',
+          onPress: async () => {
+            await removeFromQueue(item.id);
+          },
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ],
+      { cancelable: true }
+    );
+  };
 
   const renderTrack = ({ item, index }: { item: any; index: number }) => {
     const isCurrentTrack = currentTrack?.id === item.id;
@@ -96,6 +112,7 @@ export function UpNextSheet({ visible, onClose, onTrackPress }: UpNextSheetProps
           onTrackPress(item);
           handleClose();
         }}
+        onLongPress={() => handleLongPress(item)}
         activeOpacity={0.7}
       >
         <View style={styles.trackLeft}>

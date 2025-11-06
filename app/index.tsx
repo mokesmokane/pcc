@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { router, usePathname, useSegments } from 'expo-router';
 import { useAuth } from './contexts/AuthContext';
 import { supabase } from './lib/supabase';

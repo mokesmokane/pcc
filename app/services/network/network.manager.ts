@@ -1,5 +1,5 @@
-import { SupabaseService } from '../supabase/supabase.client';
-import { Change, ChangeSet, OutboxItem } from '../../types';
+import type { SupabaseService } from '../supabase/supabase.client';
+import type { Change, ChangeSet, OutboxItem } from '../../types';
 
 export interface PushResult {
   success: boolean;

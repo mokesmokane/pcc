@@ -1,52 +1,45 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
   FlatList,
   Image,
-  TouchableOpacity,
   StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAudio } from '../contexts/AudioContextExpo';
-import { usePodcastMetadata } from '../contexts/PodcastMetadataContext';
+import { useQueue, useCurrentTrackOnly } from '../stores/audioStore.hooks';
+import { useMultipleEpisodeProgress } from '@/hooks/queries/usePodcastMetadata';
 
 export default function UpNextScreen() {
   const router = useRouter();
-  const { queue, currentTrack } = useAudio();
-  const { getEpisodeProgress } = usePodcastMetadata();
-  const [tracks, setTracks] = useState<any[]>([]);
+  const { queue } = useQueue();
+  const currentTrack = useCurrentTrackOnly();
 
-  useEffect(() => {
-    const loadTracksWithProgress = async () => {
-      // Combine current track and queue, avoiding duplicates
-      const allTracks = currentTrack ? [currentTrack, ...queue] : queue;
+  // Combine current track and queue, avoiding duplicates
+  const allTracks = currentTrack ? [currentTrack, ...queue] : queue;
+  const uniqueTracks = allTracks.filter((track, index, self) =>
+    index === self.findIndex((t) => t.id === track.id)
+  );
 
-      // Remove duplicates by ID
-      const uniqueTracks = allTracks.filter((track, index, self) =>
-        index === self.findIndex((t) => t.id === track.id)
-      );
+  // Get all episode IDs for batch progress loading
+  const episodeIds = uniqueTracks.map(track => track.id);
+  const { data: progressMap } = useMultipleEpisodeProgress(episodeIds);
 
-      const tracksWithProgress = await Promise.all(
-        uniqueTracks.map(async (track) => {
-          const progress = await getEpisodeProgress(track.id);
-          return {
-            ...track,
-            progressPercentage: progress?.progressPercentage || 0,
-            savedPosition: progress?.currentPosition || 0,
-            savedDuration: progress?.totalDuration || track.duration || 0,
-          };
-        })
-      );
-      setTracks(tracksWithProgress);
+  // Combine tracks with progress data
+  const tracks = uniqueTracks.map((track) => {
+    const progress = progressMap?.get(track.id);
+    return {
+      ...track,
+      progressPercentage: progress?.progressPercentage || 0,
+      savedPosition: progress?.currentPosition || 0,
+      savedDuration: progress?.totalDuration || track.duration || 0,
     };
+  });
 
-    loadTracksWithProgress();
-  }, [queue, currentTrack]);
-
-  const handleTrackPress = (track: any) => {
+  const handleTrackPress = (track: typeof tracks[number]) => {
     // If it's the current track, just navigate to player
     if (currentTrack?.id === track.id) {
       router.push('/(traditional)/podcasts/player');
@@ -68,7 +61,7 @@ export default function UpNextScreen() {
     }
   };
 
-  const renderTrack = ({ item, index }: { item: any; index: number }) => {
+  const renderTrack = ({ item }: { item: typeof tracks[number]; index: number }) => {
     const isCurrentTrack = currentTrack?.id === item.id;
     const artwork = item.artwork || item.image;
     const episodeTitle = item.artist || item.source || item.episode;
@@ -232,10 +225,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#8B8680',
     marginBottom: 2,
-  },
-  trackDuration: {
-    fontSize: 11,
-    color: '#C4C1BB',
   },
   progressSection: {
     marginRight: 12,

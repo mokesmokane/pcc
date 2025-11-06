@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import 'react-native-url-polyfill/auto';
-import config from '../config';
+import config from '../config/index';
 
 // Create a single Supabase client for interacting with your database
 export const supabase = createClient(

@@ -3,8 +3,8 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID;
-const FIREBASE_CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL;
+const {FIREBASE_PROJECT_ID} = process.env;
+const {FIREBASE_CLIENT_EMAIL} = process.env;
 const FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n');
 const FIRESTORE_COLLECTION = process.env.FIRESTORE_COLLECTION || 'transcribed_podcasts';
 

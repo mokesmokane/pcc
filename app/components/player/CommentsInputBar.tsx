@@ -1,18 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
+  Keyboard,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  Image,
-  Keyboard,
-  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useProfile } from '../../contexts/ProfileContext';
+import { useCurrentProfile, useProfileInitials } from '../../hooks/queries/useProfile';
 
 interface CommentsInputBarProps {
   onSubmit: (text: string) => Promise<void>;
@@ -35,7 +35,8 @@ export function CommentsInputBar({
   value,
   onChangeText,
 }: CommentsInputBarProps) {
-  const { profile, getInitials } = useProfile();
+  const { data: profile } = useCurrentProfile();
+  const initials = useProfileInitials();
   const [internalValue, setInternalValue] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -111,7 +112,7 @@ export function CommentsInputBar({
         ) : (
           <View style={styles.avatarPlaceholder}>
             <Text style={styles.avatarText}>
-              {getInitials()}
+              {initials}
             </Text>
           </View>
         )}

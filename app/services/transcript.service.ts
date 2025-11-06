@@ -1,5 +1,5 @@
 import { TranscriptSegmentRepository } from '../data/repositories/transcript-segment.repository';
-import TranscriptSegment from '../data/models/transcript-segment.model';
+import type TranscriptSegment from '../data/models/transcript-segment.model';
 import database from '../db';
 
 export interface TranscriptSegmentData {
@@ -35,10 +35,24 @@ class TranscriptService {
     try {
       console.log('TranscriptService - Loading transcript for episode:', episodeId);
 
-      // Sync with remote first
+      // Get from local cache first
+      const cached = await this.repository.getEpisodeSegments(episodeId);
+
+      // If we have cached data, return it immediately
+      if (cached.length > 0) {
+        console.log('✅ Using cached transcript, syncing in background');
+        // Sync in background (non-blocking)
+        this.repository.syncWithRemote(episodeId).catch(err => {
+          console.error('Background transcript sync failed:', err);
+        });
+        return cached;
+      }
+
+      // No cache - sync first (initial load)
+      console.log('📥 No cached transcript, performing initial sync');
       await this.repository.syncWithRemote(episodeId);
 
-      // Return local segments
+      // Return newly synced segments
       return await this.repository.getEpisodeSegments(episodeId);
     } catch (err) {
       console.error('Failed to load transcript:', err);
@@ -76,9 +90,9 @@ class TranscriptService {
 
     segments.forEach((segment, index) => {
       if (index <= safeIndex) {
-        currentText += segment.text + ' ';
+        currentText += `${segment.text  } `;
       } else {
-        upcomingText += segment.text + ' ';
+        upcomingText += `${segment.text  } `;
       }
     });
 
@@ -124,7 +138,7 @@ class TranscriptService {
 
     // Limit displayed text for preview
     const displayCurrentText = display.currentText.length > maxCurrentLength
-      ? '...' + display.currentText.substring(display.currentText.length - maxCurrentLength)
+      ? `...${  display.currentText.substring(display.currentText.length - maxCurrentLength)}`
       : display.currentText;
 
     const displayUpcomingText = display.upcomingText.substring(0, maxUpcomingLength);

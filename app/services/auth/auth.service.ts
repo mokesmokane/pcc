@@ -1,4 +1,4 @@
-import { Session, User } from '@supabase/supabase-js';
+import type { Session, User } from '@supabase/supabase-js';
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { supabase } from '../../lib/supabase';
@@ -153,7 +153,7 @@ export class AuthService {
   async signInWithPhone(phone: string) {
     try {
       const { data, error } = await supabase.auth.signInWithOtp({
-        phone: phone,
+        phone,
       });
 
       if (error) throw error;
@@ -168,8 +168,8 @@ export class AuthService {
   async verifyOTP(phone: string, token: string) {
     try {
       const { data, error } = await supabase.auth.verifyOtp({
-        phone: phone,
-        token: token,
+        phone,
+        token,
         type: 'sms',
       });
 

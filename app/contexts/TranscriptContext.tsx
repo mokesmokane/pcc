@@ -1,8 +1,11 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { TranscriptSegmentRepository } from '../data/repositories/transcript-segment.repository';
-import TranscriptSegment from '../data/models/transcript-segment.model';
-import { TranscriptSegmentData, TranscriptDisplay, transcriptService } from '../services/transcript.service';
+import type TranscriptSegment from '../data/models/transcript-segment.model';
+import type { TranscriptDisplay} from '../services/transcript.service';
+import { TranscriptSegmentData, transcriptService } from '../services/transcript.service';
 import { useDatabase } from './DatabaseContext';
+import { isPodcastClubEpisode } from '../utils/episodeUtils';
 
 interface TranscriptContextType {
   segments: TranscriptSegment[];
@@ -67,8 +70,20 @@ export function TranscriptProvider({ children }: { children: ReactNode }) {
     };
   }, [repository, currentEpisodeId, currentPosition]);
 
-  const loadTranscript = async (episodeId: string) => {
+  const loadTranscript = useCallback(async (episodeId: string) => {
     if (!episodeId) {
+      return;
+    }
+
+    // Skip loading for non-Podcast Club episodes (traditional podcast player)
+    if (!isPodcastClubEpisode(episodeId)) {
+      console.log('TranscriptContext - Skipping transcript load for non-Podcast Club episode:', episodeId);
+      setCurrentEpisodeId(episodeId);
+      setSegments([]);
+      setTranscriptDisplay(null);
+      setCurrentSegment(null);
+      setLoading(false);
+      setError(null);
       return;
     }
 
@@ -93,7 +108,7 @@ export function TranscriptProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentEpisodeId, segments.length]);
 
   const updatePosition = (position: number) => {
     setCurrentPosition(position);

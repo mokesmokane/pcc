@@ -6,7 +6,7 @@ import { Animated, PanResponder, ScrollView, StyleSheet, Text, TouchableOpacity,
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MiniPlayer } from './MiniPlayer';
 import { useChapters } from '../../contexts/ChaptersContext';
-import { useAudio } from '../../contexts/AudioContextExpo';
+import { usePlaybackControls } from '../../stores/audioStore.hooks';
 import { chapterService } from '../../services/chapter.service';
 
 interface ChaptersSheetProps {
@@ -49,7 +49,7 @@ export function ChaptersSheet({
   });
 
   const { formattedChapters, loadChapters, updatePosition } = useChapters();
-  const { seekTo } = useAudio();
+  const { seekTo } = usePlaybackControls();
 
   const insets = useSafeAreaInsets();
   const chaptersAnimatedValue = useRef(new Animated.Value(0)).current;
@@ -88,12 +88,12 @@ export function ChaptersSheet({
     if (currentTrack?.episodeId) {
       loadChapters(currentTrack.episodeId);
     }
-  }, [currentTrack?.episodeId]);
+  }, [currentTrack?.episodeId, loadChapters]);
 
   // Update position in chapters context
   useEffect(() => {
     updatePosition(position);
-  }, [position]);
+  }, [position, updatePosition]);
 
   const handleChapterPress = (startSeconds: number) => {
     if (onChapterPress) {
@@ -119,7 +119,7 @@ export function ChaptersSheet({
         useNativeDriver: true,
       }).start();
     }
-  }, [visible, expanded]);
+  }, [visible, expanded, chaptersAnimatedValue, chaptersTranslateY]);
 
   if (!visible) return null;
 

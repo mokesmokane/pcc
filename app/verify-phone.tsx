@@ -1,16 +1,15 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  TextInput,
-  TouchableOpacity,
   Alert,
   KeyboardAvoidingView,
   Platform,
+  SafeAreaView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuth } from './contexts/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -40,7 +39,7 @@ export default function VerifyPhoneScreen() {
     }
   };
 
-  const handleKeyPress = (e: any, index: number) => {
+  const handleKeyPress = (e: { nativeEvent: { key: string } }, index: number) => {
     if (e.nativeEvent.key === 'Backspace' && !code[index] && index > 0) {
       inputs.current[index - 1]?.focus();
     }
@@ -80,10 +79,11 @@ export default function VerifyPhoneScreen() {
         console.log('Existing user detected, navigating to home');
         router.replace('/home');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Invalid code. Please try again.';
       Alert.alert(
         'Verification Failed',
-        error.message || 'Invalid code. Please try again.',
+        errorMessage,
         [{ text: 'OK' }]
       );
       // Clear the code

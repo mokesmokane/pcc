@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View, Linking } from 'react-native';
+import { Image, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { format, parseISO } from 'date-fns';
 import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
 

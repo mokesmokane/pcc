@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, StatusBar, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StatusBar, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import { Player } from '../../components/player/Player';
 import { PlayerHeader } from '../../components/player/PlayerHeader';
 import { PlaybackSpeedModal } from '../../components/player/PlaybackSpeedModal';
 import { SleepTimerModal } from '../../components/player/SleepTimerModal';
-import { useAudio } from '../../contexts/AudioContextExpo';
+import { useAudioPlayer } from '../../stores/audioStore.hooks';
 import { downloadService } from '../../services/downloadService';
 
 export default function TraditionalPlayerScreen() {
@@ -23,7 +23,7 @@ export default function TraditionalPlayerScreen() {
     sleepTimer,
     setSleepTimer,
     playNow,
-  } = useAudio();
+  } = useAudioPlayer();
 
   const [showPlaybackRate, setShowPlaybackRate] = useState(false);
   const [showSleepTimer, setShowSleepTimer] = useState(false);

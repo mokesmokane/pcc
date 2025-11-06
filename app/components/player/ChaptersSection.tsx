@@ -2,9 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Onest_400Regular, Onest_600SemiBold, useFonts as useOnestFonts } from '@expo-google-fonts/onest';
 import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
 import React, { useEffect, useRef } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useChapters } from '../../contexts/ChaptersContext';
-import { useAudio } from '../../contexts/AudioContextExpo';
+import { usePlaybackControls, usePosition } from '../../stores/audioStore.hooks';
 import { chapterService } from '../../services/chapter.service';
 
 interface ChaptersSectionProps {
@@ -28,7 +28,8 @@ export function ChaptersSection({
   });
 
   const { formattedChapters, loadChapters, updatePosition, currentChapter } = useChapters();
-  const { position, seekTo } = useAudio();
+  const position = usePosition();
+  const { seekTo } = usePlaybackControls();
   const scrollViewRef = useRef<ScrollView>(null);
   const previousChapterIdRef = useRef<string | null>(null);
   const userScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -39,12 +40,12 @@ export function ChaptersSection({
     if (episodeId) {
       loadChapters(episodeId);
     }
-  }, [episodeId]);
+  }, [episodeId, loadChapters]);
 
   // Update position in chapters context
   useEffect(() => {
     updatePosition(position);
-  }, [position]);
+  }, [position, updatePosition]);
 
   // Auto-scroll to current chapter only when chapter changes
   useEffect(() => {

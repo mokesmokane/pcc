@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { useDatabase } from './DatabaseContext';
 import { ProgressRepository } from '../data/repositories/progress.repository';

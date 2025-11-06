@@ -1,5 +1,5 @@
-import React, { createContext, useEffect, useContext, useMemo } from 'react';
-import { Session, User } from '@supabase/supabase-js';
+import React, { createContext, useContext, useEffect, useMemo } from 'react';
+import type { Session, User } from '@supabase/supabase-js';
 import { router } from 'expo-router';
 import { authService, useAuthStore } from '../services/auth/auth.service';
 

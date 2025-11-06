@@ -1,6 +1,6 @@
-import { describe, test, expect } from 'vitest';
-import { normalizePhoneNumber, cleanPhoneNumber, getPhoneNumberError } from '../phoneNumber';
-import { CountryCode } from '../../components/CountryCodeSelector';
+import { describe, expect, test } from 'vitest';
+import { cleanPhoneNumber, getPhoneNumberError, normalizePhoneNumber } from '../phoneNumber';
+import type { CountryCode } from '../../components/CountryCodeSelector';
 
 describe('Phone Number Normalization', () => {
   const ukCountry: CountryCode = {

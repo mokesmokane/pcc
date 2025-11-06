@@ -1,24 +1,25 @@
 import React from 'react';
 import {
-  View,
+  Animated,
+  Image,
+  PanResponder,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  Image,
-  Animated,
-  PanResponder,
+  View,
 } from 'react-native';
-import { useRouter, usePathname } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAudio } from '../contexts/AudioContextExpo';
+import { usePlaybackState, usePlaybackControls, useCurrentTrack } from '../stores/audioStore.hooks';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 export const MiniPlayer: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const { currentTrack, isPlaying, play, pause, position, duration } = useAudio();
+  const { isPlaying } = usePlaybackState();
+  const { play, pause } = usePlaybackControls();
+  const { currentTrack, position, duration } = useCurrentTrack();
 
   const translateX = React.useRef(new Animated.Value(0)).current;
   
@@ -64,7 +65,7 @@ export const MiniPlayer: React.FC = () => {
     });
   };
 
-  const handlePlayPause = async (e: any) => {
+  const handlePlayPause = async (e: { stopPropagation: () => void }) => {
     e.stopPropagation();
     if (isPlaying) {
       await pause();

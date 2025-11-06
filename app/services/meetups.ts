@@ -1,4 +1,4 @@
-import { Database } from '@nozbe/watermelondb';
+import type { Database } from '@nozbe/watermelondb';
 import { MeetupRepository } from '../data/repositories/meetup.repository';
 import { supabase } from '../lib/supabase';
 

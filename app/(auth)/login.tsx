@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
+  Alert,
   KeyboardAvoidingView,
   Platform,
-  Alert,
-  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Text,
   TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
+import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
+import type { CountryCode } from '../components/CountryCodeSelector';
+import CountryCodeSelector, { COUNTRY_CODES } from '../components/CountryCodeSelector';
 import { useAuth } from '../contexts/AuthContext';
-import { useFonts, PaytoneOne_400Regular } from '@expo-google-fonts/paytone-one';
-import CountryCodeSelector, { CountryCode, COUNTRY_CODES } from '../components/CountryCodeSelector';
-import { normalizePhoneNumber, getPhoneNumberError } from '../utils/phoneNumber';
+import { getPhoneNumberError, normalizePhoneNumber } from '../utils/phoneNumber';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -55,13 +56,14 @@ export default function LoginScreen() {
         return;
       }
 
-      const formattedPhone = validation.normalizedNumber!;
+      const formattedPhone = validation.normalizedNumber ?? '';
       await signInWithPhone(formattedPhone);
       router.push(`/verify-phone?phone=${encodeURIComponent(formattedPhone)}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unable to send verification code. Please try again.';
       Alert.alert(
         'Sign In Error',
-        error.message || 'Unable to send verification code. Please try again.'
+        errorMessage
       );
     } finally {
       setIsLoading(false);
@@ -77,7 +79,7 @@ export default function LoginScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <KeyboardAvoidingView
-          style={{ flex: 1 }}
+          style={styles.keyboardView}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <ScrollView
@@ -139,7 +141,7 @@ export default function LoginScreen() {
                   style={styles.signupLink}
                 >
                   <Text style={styles.signupLinkText}>
-                    Don't have an account? Join the club
+                    Don&apos;t have an account? Join the club
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -155,6 +157,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F4F1ED',
+  },
+  keyboardView: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
@@ -173,20 +178,6 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     gap: 16,
-  },
-  inputWrapper: {
-    marginBottom: 20,
-  },
-  input: {
-    borderWidth: 1.5,
-    borderColor: '#403837',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    fontSize: 16,
-    height: 56,
-    backgroundColor: 'transparent',
-    color: '#403837',
   },
   phoneInputContainer: {
     flexDirection: 'row',

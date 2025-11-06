@@ -1,5 +1,6 @@
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 interface MemberData {
   id: string;
@@ -15,18 +16,29 @@ interface MemberData {
 interface MemberInfoProps {
   member: MemberData;
   onPress?: () => void;
+  isFriend?: boolean;
 }
 
-export function MemberInfo({ member, onPress }: MemberInfoProps) {
+export function MemberInfo({ member, onPress, isFriend = false }: MemberInfoProps) {
   const isCompleted = member.progress >= 95;
   const isGhost = member.progress < 5 && !member.lastActivity.includes('now') && !member.lastActivity.includes('min');
 
   return (
     <TouchableOpacity style={styles.memberItem} onPress={onPress} disabled={!onPress}>
-      <Image source={{ uri: member.avatar || 'https://i.pravatar.cc/150' }} style={styles.avatar} />
+      <View style={styles.avatarContainer}>
+        <Image source={{ uri: member.avatar || 'https://i.pravatar.cc/150' }} style={styles.avatar} />
+        {isFriend && (
+          <View style={styles.friendBadge}>
+            <Ionicons name="people" size={12} color="#FFFFFF" />
+          </View>
+        )}
+      </View>
 
       <View style={styles.memberInfo}>
-        <Text style={styles.memberName}>{member.name}</Text>
+        <View style={styles.nameContainer}>
+          <Text style={styles.memberName}>{member.name}</Text>
+          {isFriend && <Text style={styles.friendLabel}>Friend</Text>}
+        </View>
         <Text style={[
           styles.lastOnline,
           member.lastActivity.includes('now') && styles.onlineNow
@@ -81,21 +93,51 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 20,
   },
+  avatarContainer: {
+    position: 'relative',
+    marginRight: 14,
+  },
   avatar: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    marginRight: 14,
+  },
+  friendBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#E05F4E',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   memberInfo: {
     flex: 1,
     justifyContent: 'center',
   },
+  nameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
   memberName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#403837',
-    marginBottom: 4,
+  },
+  friendLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#E05F4E',
+    backgroundColor: '#FFF5F4',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   lastOnline: {
     fontSize: 13,

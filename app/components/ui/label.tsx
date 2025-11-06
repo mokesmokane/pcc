@@ -1,5 +1,6 @@
 import React from 'react';
-import { Text, StyleSheet, TextProps } from 'react-native';
+import type { TextProps } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 
 interface LabelProps extends TextProps {
   children: React.ReactNode;

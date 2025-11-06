@@ -1,5 +1,6 @@
 import React from 'react';
-import { Pressable, Text, StyleSheet, ViewStyle, TextStyle, PressableProps } from 'react-native';
+import type { PressableProps, TextStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
 import { theme } from '../../constants/theme';
 
 type ButtonVariant = 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';

@@ -32,7 +32,7 @@ interface CommentsSectionProps {
   onViewAll?: () => void;
   onInputPress?: () => void;
   onViewReplies?: (comment: CommentData) => void;
-  onFetchReplies?: (commentId: string) => Promise<any[]>;
+  onFetchReplies?: (commentId: string) => Promise<Array<{ id: string; author: string; avatar?: string; text: string; time: string }>>;
 }
 
 /**
@@ -58,7 +58,7 @@ export function CommentsSection({
     if (episodeId) {
       loadComments(episodeId);
     }
-  }, [episodeId]);
+  }, [episodeId, loadComments]);
 
   const handleSubmit = async (text: string) => {
     if (onSubmitComment) {

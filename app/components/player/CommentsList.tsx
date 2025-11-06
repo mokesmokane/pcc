@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet, View, Text } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Comment } from './Comment';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -27,10 +27,10 @@ interface CommentsListProps {
   onReply?: (comment: CommentData) => void;
   onReact?: (commentId: string, emoji: string) => void;
   onMore?: (commentId: string) => void;
-  onFetchReactionDetails?: (commentId: string) => Promise<any[]>;
+  onFetchReactionDetails?: (commentId: string) => Promise<Array<{ id: string; userName: string; avatar?: string; emoji: string }>>;
   contentPadding?: number;
   onViewReplies?: (comment: CommentData) => void;
-  onFetchReplies?: (commentId: string) => Promise<any[]>;
+  onFetchReplies?: (commentId: string) => Promise<Array<{ id: string; author: string; avatar?: string; text: string; time: string }>>;
 }
 
 export function CommentsList({

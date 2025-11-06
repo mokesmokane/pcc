@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { trackError } from '../errorTracking/errorTrackingService';
 
 interface MediaMetadata {
   title: string;
@@ -58,21 +59,21 @@ class MediaNotificationService {
     await Notifications.setNotificationCategoryAsync('media-controls', [
       {
         identifier: 'skip-backward',
-        buttonTitle: 'Skip -15s',
+        buttonTitle: '⏪',
         options: {
           opensAppToForeground: false,
         },
       },
       {
         identifier: 'play-pause',
-        buttonTitle: 'Play/Pause',
+        buttonTitle: '⏯️',
         options: {
           opensAppToForeground: false,
         },
       },
       {
         identifier: 'skip-forward',
-        buttonTitle: 'Skip +30s',
+        buttonTitle: '⏩',
         options: {
           opensAppToForeground: false,
         },
@@ -132,6 +133,11 @@ class MediaNotificationService {
       // Otherwise just leave it alone - the notification stays persistent
     } catch (error) {
       console.error('❌ Error showing media notification:', error);
+      trackError(error as Error, {
+        component: 'MediaNotificationService',
+        action: 'showMediaNotification',
+        trackTitle: metadata.title,
+      });
     }
   }
 

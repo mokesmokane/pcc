@@ -14,7 +14,6 @@ module.exports = {
     },
     ecmaVersion: 2020,
     sourceType: 'module',
-    project: './tsconfig.json',
   },
   plugins: ['@typescript-eslint', 'react', 'react-hooks', 'react-native'],
   settings: {
@@ -23,7 +22,8 @@ module.exports = {
     },
   },
   env: {
-    'react-native/react-native': true,
+    node: true,
+    es2020: true,
   },
   rules: {
     // TypeScript

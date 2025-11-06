@@ -1,23 +1,24 @@
 import React, { useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  ScrollView,
+  Alert,
   KeyboardAvoidingView,
   Platform,
-  Alert,
-  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
   TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { CountryCode } from '../components/CountryCodeSelector';
+import CountryCodeSelector, { COUNTRY_CODES } from '../components/CountryCodeSelector';
 import { Checkbox } from '../components/ui/checkbox';
 import { useAuth } from '../contexts/AuthContext';
-import { useFonts, PaytoneOne_400Regular } from '@expo-google-fonts/paytone-one';
-import CountryCodeSelector, { CountryCode, COUNTRY_CODES } from '../components/CountryCodeSelector';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { normalizePhoneNumber, getPhoneNumberError } from '../utils/phoneNumber';
+import { getPhoneNumberError, normalizePhoneNumber } from '../utils/phoneNumber';
 
 export default function JoinScreen() {
   const router = useRouter();
@@ -84,7 +85,7 @@ export default function JoinScreen() {
         return;
       }
 
-      const formattedPhone = validation.normalizedNumber!;
+      const formattedPhone = validation.normalizedNumber ?? '';
 
       // Store user data temporarily for profile creation after verification
       await AsyncStorage.setItem('pendingUserData', JSON.stringify({
@@ -95,10 +96,11 @@ export default function JoinScreen() {
 
       await signInWithPhone(formattedPhone);
       router.push(`/verify-phone?phone=${encodeURIComponent(formattedPhone)}&isSignUp=true`);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred during sign up. Please try again.';
       Alert.alert(
         'Error',
-        error.message || 'An error occurred during sign up. Please try again.',
+        errorMessage,
         [{ text: 'OK' }]
       );
     } finally {
@@ -109,7 +111,7 @@ export default function JoinScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        style={{ flex: 1 }}
+        style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
@@ -211,6 +213,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F4F1ED',
+  },
+  keyboardView: {
+    flex: 1,
   },
   scrollContent: {
     flexGrow: 1,

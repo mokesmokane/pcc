@@ -1,9 +1,21 @@
-import { Database, Q } from '@nozbe/watermelondb';
-import UserEpisodeProgress from '../../models/UserEpisodeProgress';
+import type { Database} from '@nozbe/watermelondb';
+import { Q } from '@nozbe/watermelondb';
+import type UserEpisodeProgress from '../../models/UserEpisodeProgress';
 import { BaseRepository } from './base.repository';
 import { supabase } from '../../lib/supabase';
 
+interface PendingProgress {
+  userId: string;
+  episodeId: string;
+  position: number;
+  duration: number;
+}
+
 export class ProgressRepository extends BaseRepository<UserEpisodeProgress> {
+  private pendingSyncs = new Map<string, PendingProgress>();
+  private flushTimer?: NodeJS.Timeout;
+  private readonly FLUSH_DEBOUNCE = 30000; // Auto-flush after 30s of no new saves
+
   constructor(database: Database) {
     super(database, 'user_episode_progress');
   }
@@ -33,7 +45,7 @@ export class ProgressRepository extends BaseRepository<UserEpisodeProgress> {
 
     if (existing) {
       // Update existing progress
-      const updated = await this.database.write(async () => {
+      const updated = await this.database.write(async function updateExistingProgress() {
         return await existing.update((progress) => {
           progress.currentPosition = position;
           progress.totalDuration = duration;
@@ -43,13 +55,18 @@ export class ProgressRepository extends BaseRepository<UserEpisodeProgress> {
         });
       });
 
-      // Sync to Supabase in background
-      this.syncToSupabase(userId, episodeId, position, duration).catch(console.error);
+      // Track for batched sync (NEW)
+      const key = `${userId}_${episodeId}`;
+      this.pendingSyncs.set(key, { userId, episodeId, position, duration });
+
+      // Auto-flush after debounce period (NEW)
+      if (this.flushTimer) clearTimeout(this.flushTimer);
+      this.flushTimer = setTimeout(() => this.flushPendingSyncs(), this.FLUSH_DEBOUNCE);
 
       return updated;
     } else {
       // Create new progress
-      const created = await this.database.write(async () => {
+      const created = await this.database.write(async function createNewProgress() {
         return await collection.create((progress) => {
           progress.userId = userId;
           progress.episodeId = episodeId;
@@ -61,8 +78,13 @@ export class ProgressRepository extends BaseRepository<UserEpisodeProgress> {
         });
       });
 
-      // Sync to Supabase in background
-      this.syncToSupabase(userId, episodeId, position, duration).catch(console.error);
+      // Track for batched sync (NEW)
+      const key = `${userId}_${episodeId}`;
+      this.pendingSyncs.set(key, { userId, episodeId, position, duration });
+
+      // Auto-flush after debounce period (NEW)
+      if (this.flushTimer) clearTimeout(this.flushTimer);
+      this.flushTimer = setTimeout(() => this.flushPendingSyncs(), this.FLUSH_DEBOUNCE);
 
       return created;
     }
@@ -85,7 +107,7 @@ export class ProgressRepository extends BaseRepository<UserEpisodeProgress> {
       // Mark as synced
       const progress = await this.getProgress(userId, episodeId);
       if (progress) {
-        await this.database.write(async () => {
+        await this.database.write(async function markProgressAsSynced() {
           await progress.update((p) => {
             p.needsSync = false;
             p.syncedAt = new Date();
@@ -94,6 +116,44 @@ export class ProgressRepository extends BaseRepository<UserEpisodeProgress> {
       }
     } catch (error) {
       console.error('Error syncing progress to Supabase:', error);
+    }
+  }
+
+  /**
+   * Flushes all pending progress syncs to Supabase.
+   * This should be called on pause, app background, or when progress reaches milestones.
+   */
+  async flushPendingSyncs(): Promise<void> {
+    const syncs = Array.from(this.pendingSyncs.values());
+
+    if (syncs.length === 0) {
+      return;
+    }
+
+    console.log(`📤 Flushing ${syncs.length} pending progress update(s) to Supabase`);
+
+    // Clear the pending syncs and timer
+    this.pendingSyncs.clear();
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = undefined;
+    }
+
+    // Sync all pending progress updates in parallel
+    const results = await Promise.allSettled(
+      syncs.map(sync =>
+        this.syncToSupabase(sync.userId, sync.episodeId, sync.position, sync.duration)
+      )
+    );
+
+    // Log results
+    const succeeded = results.filter(r => r.status === 'fulfilled').length;
+    const failed = results.filter(r => r.status === 'rejected').length;
+
+    if (failed > 0) {
+      console.warn(`⚠️ Progress flush completed: ${succeeded} succeeded, ${failed} failed`);
+    } else {
+      console.log(`✅ Progress flush completed: ${succeeded} update(s) synced successfully`);
     }
   }
 
@@ -179,7 +239,7 @@ export class ProgressRepository extends BaseRepository<UserEpisodeProgress> {
 
           if (local) {
             // Update existing local record
-            await this.database.write(async () => {
+            await this.database.write(async function updateProgressFromSupabase() {
               await local.update((progress) => {
                 progress.currentPosition = remote.current_position;
                 progress.totalDuration = remote.total_duration;
@@ -192,7 +252,7 @@ export class ProgressRepository extends BaseRepository<UserEpisodeProgress> {
           } else {
             // Create new local record
             const collection = this.database.get<UserEpisodeProgress>('user_episode_progress');
-            await this.database.write(async () => {
+            await this.database.write(async function createProgressFromSupabase() {
               await collection.create((progress) => {
                 progress.userId = userId!;
                 progress.episodeId = remote.episode_id;

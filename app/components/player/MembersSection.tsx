@@ -1,8 +1,9 @@
 import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
-import React, { useEffect } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, ScrollView } from 'react-native';
+import React, { useEffect, useMemo } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { MemberInfo } from '../MemberInfo';
 import { useMembers } from '../../contexts/MembersContext';
+import { useFriendIds } from '../../hooks/queries/useFriends';
 
 interface MembersSectionProps {
   episodeId?: string;
@@ -22,13 +23,29 @@ export function MembersSection({
   });
 
   const { members, stats, currentUserProgress, loading, loadMembers } = useMembers();
+  const friendIds = useFriendIds();
 
   // Load members when episode changes
   useEffect(() => {
     if (episodeId) {
       loadMembers(episodeId);
     }
-  }, [episodeId]);
+  }, [episodeId, loadMembers]);
+
+  // Sort members with friends first
+  const sortedMembers = useMemo(() => {
+    return [...members].sort((a, b) => {
+      const aIsFriend = friendIds.has(a.userId);
+      const bIsFriend = friendIds.has(b.userId);
+
+      // Friends come first
+      if (aIsFriend && !bIsFriend) return -1;
+      if (!aIsFriend && bIsFriend) return 1;
+
+      // Otherwise maintain original order
+      return 0;
+    });
+  }, [members, friendIds]);
 
   // Use currentUserProgress if available, otherwise use passed progressPercentage
   const displayProgress = currentUserProgress || progressPercentage;
@@ -41,7 +58,7 @@ export function MembersSection({
     );
   }
 
-  const displayMembers = members.slice(0, limitMembers);
+  const displayMembers = sortedMembers.slice(0, limitMembers);
 
   return (
     <View style={styles.container}>
@@ -69,7 +86,11 @@ export function MembersSection({
         nestedScrollEnabled={true}
       >
         {displayMembers.map(member => (
-          <MemberInfo key={member.id} member={member} />
+          <MemberInfo
+            key={member.id}
+            member={member}
+            isFriend={friendIds.has(member.userId)}
+          />
         ))}
 
         {/* Empty state */}
@@ -85,7 +106,7 @@ export function MembersSection({
       {members.length > 0 && (
         <View style={styles.motivationalSection}>
           <Text style={styles.motivationalText}>
-            💪 {displayProgress > 0 ? `${Math.round(displayProgress)}% complete! ` : ''}Be part of the {stats.totalMembers > 0 && stats.finishedCount > 0 ? Math.round((stats.finishedCount / stats.totalMembers) * 100) : 0}% who already finished. You're too good to ghost on yourself. 👻
+            💪 {displayProgress > 0 ? `${Math.round(displayProgress)}% complete! ` : ''}Be part of the {stats.totalMembers > 0 && stats.finishedCount > 0 ? Math.round((stats.finishedCount / stats.totalMembers) * 100) : 0}% who already finished. You&apos;re too good to ghost on yourself. 👻
           </Text>
         </View>
       )}

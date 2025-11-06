@@ -1,14 +1,14 @@
 import React from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
   Image,
   Linking,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFonts, PaytoneOne_400Regular } from '@expo-google-fonts/paytone-one';
+import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
 
 export default function PoddleboxSection() {
   const [fontsLoaded] = useFonts({
@@ -16,8 +16,8 @@ export default function PoddleboxSection() {
   });
 
   const handleWatchEpisode = () => {
-    // Replace with actual video URL
-    Linking.openURL('https://youtube.com');
+    // Rick roll for the time being
+    Linking.openURL('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
   };
 
   if (!fontsLoaded) {

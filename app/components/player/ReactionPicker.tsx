@@ -1,13 +1,13 @@
 import React from 'react';
 import {
+  Animated,
+  Dimensions,
   Modal,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  Animated,
-  Dimensions,
-  ScrollView,
 } from 'react-native';
 
 interface ReactionPickerProps {

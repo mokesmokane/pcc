@@ -1,10 +1,10 @@
-import { Database } from '@nozbe/watermelondb';
+import type { Database } from '@nozbe/watermelondb';
 import { Q } from '@nozbe/watermelondb';
 import { Observable } from '@nozbe/watermelondb/utils/rx';
 import { BaseRepository } from './base.repository';
-import Meetup from '../models/meetup.model';
-import MeetupAttendee from '../models/meetup-attendee.model';
-import EpisodeMeetup from '../models/episode-meetup.model';
+import type Meetup from '../models/meetup.model';
+import type MeetupAttendee from '../models/meetup-attendee.model';
+import type EpisodeMeetup from '../models/episode-meetup.model';
 import { supabase } from '../../lib/supabase';
 
 export interface MeetupWithDetails extends Meetup {
@@ -21,6 +21,8 @@ export interface MeetupWithDetails extends Meetup {
 export class MeetupRepository extends BaseRepository<Meetup> {
   private attendeeCollection: any;
   private episodeMeetupCollection: any;
+  private lastSyncTime: Map<string, number> = new Map();
+  private CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
   constructor(database: Database) {
     super(database, 'meetups');
@@ -119,8 +121,19 @@ export class MeetupRepository extends BaseRepository<Meetup> {
       .fetch();
   }
 
-  async syncFromSupabase(episodeId: string): Promise<void> {
+  async syncFromSupabase(episodeId: string, force = false): Promise<void> {
     try {
+      // Check cache age
+      const lastSync = this.lastSyncTime.get(episodeId) || 0;
+      const cacheAge = Date.now() - lastSync;
+
+      if (!force && cacheAge < this.CACHE_TTL) {
+        console.log(`✅ Meetup cache valid for episode ${episodeId}, skipping sync (age: ${Math.floor(cacheAge / 1000)}s)`);
+        return;
+      }
+
+      console.log(`📥 Meetup cache expired or forced for episode ${episodeId}, syncing...`);
+
       // Fetch meetups for this episode using the function
       const { data: meetups, error } = await supabase
         .rpc('get_meetups_for_episode', { p_episode_id: episodeId });
@@ -139,6 +152,9 @@ export class MeetupRepository extends BaseRepository<Meetup> {
           await this.syncEpisodeMeetups(meetup.id, meetup.related_episodes || []);
         }
       }
+
+      // Update cache timestamp
+      this.lastSyncTime.set(episodeId, Date.now());
     } catch (error) {
       console.error('Error syncing meetups from Supabase:', error);
       throw error;
@@ -236,10 +252,12 @@ export class MeetupRepository extends BaseRepository<Meetup> {
   private async syncEpisodeMeetups(meetupId: string, relatedEpisodes: any[]): Promise<void> {
     if (!relatedEpisodes || relatedEpisodes.length === 0) return;
 
+    const episodeMeetupCollection = this.episodeMeetupCollection;
+
     try {
-      await this.database.write(async () => {
+      await this.database.write(async function syncMeetupEpisodeRelationships() {
         // Clear existing episode-meetup relationships for this meetup
-        const existingRelations = await this.episodeMeetupCollection
+        const existingRelations = await episodeMeetupCollection
           .query(Q.where('meetup_id', meetupId))
           .fetch();
 
@@ -250,7 +268,7 @@ export class MeetupRepository extends BaseRepository<Meetup> {
         // Create new relationships
         for (const episode of relatedEpisodes) {
           if (episode && episode.episode_id) {
-            await this.episodeMeetupCollection.create((record: EpisodeMeetup) => {
+            await episodeMeetupCollection.create((record: EpisodeMeetup) => {
               record._raw.id = `${episode.episode_id}_${meetupId}`;
               record.episodeId = episode.episode_id;
               record.meetupId = meetupId;
@@ -267,10 +285,12 @@ export class MeetupRepository extends BaseRepository<Meetup> {
   private async syncAttendees(meetupId: string, attendees: any[]): Promise<void> {
     if (!attendees || attendees.length === 0) return;
 
+    const attendeeCollection = this.attendeeCollection;
+
     try {
-      await this.database.write(async () => {
+      await this.database.write(async function syncMeetupAttendees() {
         // Clear existing attendees for this meetup
-        const existingAttendees = await this.attendeeCollection
+        const existingAttendees = await attendeeCollection
           .query(Q.where('meetup_id', meetupId))
           .fetch();
 
@@ -281,7 +301,7 @@ export class MeetupRepository extends BaseRepository<Meetup> {
         // Create new attendees
         for (const attendee of attendees) {
           if (attendee && attendee.user_id) {
-            await this.attendeeCollection.create((record: MeetupAttendee) => {
+            await attendeeCollection.create((record: MeetupAttendee) => {
               record._raw.id = `${meetupId}_${attendee.user_id}`;
               record.meetupId = meetupId;
               record.userId = attendee.user_id;
@@ -438,9 +458,10 @@ export class MeetupRepository extends BaseRepository<Meetup> {
 
       // Create local episode-meetup relationships
       if (episodeIds.length > 0) {
-        await this.database.write(async () => {
+        const episodeMeetupCollection = this.episodeMeetupCollection;
+        await this.database.write(async function createLocalEpisodeMeetupRelationships() {
           for (const episodeId of episodeIds) {
-            await this.episodeMeetupCollection.create((record: EpisodeMeetup) => {
+            await episodeMeetupCollection.create((record: EpisodeMeetup) => {
               record._raw.id = `${episodeId}_${newMeetup.id}`;
               record.episodeId = episodeId;
               record.meetupId = newMeetup.id;
@@ -466,8 +487,9 @@ export class MeetupRepository extends BaseRepository<Meetup> {
       });
 
       // Create local relationship
-      await this.database.write(async () => {
-        await this.episodeMeetupCollection.create((record: EpisodeMeetup) => {
+      const episodeMeetupCollection = this.episodeMeetupCollection;
+      await this.database.write(async function createEpisodeMeetupAssociation() {
+        await episodeMeetupCollection.create((record: EpisodeMeetup) => {
           record._raw.id = `${episodeId}_${meetupId}`;
           record.episodeId = episodeId;
           record.meetupId = meetupId;
@@ -498,7 +520,7 @@ export class MeetupRepository extends BaseRepository<Meetup> {
 
       const episodeMeetup = episodeMeetups[0];
       if (episodeMeetup) {
-        await this.syncFromSupabase(episodeMeetup.episodeId);
+        await this.syncFromSupabase(episodeMeetup.episodeId, true); // Force refresh after joining
       }
 
       return data as 'confirmed' | 'waitlist' | 'already_joined';
@@ -528,7 +550,7 @@ export class MeetupRepository extends BaseRepository<Meetup> {
 
       const attendee = attendees[0];
       if (attendee) {
-        await this.database.write(async () => {
+        await this.database.write(async function removeMeetupAttendeeLocally() {
           await attendee.destroyPermanently();
         });
       }
@@ -541,7 +563,7 @@ export class MeetupRepository extends BaseRepository<Meetup> {
 
       const episodeMeetup = episodeMeetups[0];
       if (episodeMeetup) {
-        await this.syncFromSupabase(episodeMeetup.episodeId);
+        await this.syncFromSupabase(episodeMeetup.episodeId, true); // Force refresh after leaving
       }
 
       return data as boolean;

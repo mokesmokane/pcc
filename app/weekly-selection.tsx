@@ -1,7 +1,6 @@
 import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -16,10 +15,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, G, Path, Text as SvgText } from 'react-native-svg';
 import { useWeeklySelections } from './contexts/WeeklySelectionsContext';
-import { styles, CARD_WIDTH } from './weekly-selection.styles';
-import { WeeklyPodcast } from './contexts/WeeklySelectionsContext';
+import { CARD_WIDTH, styles } from './weekly-selection.styles';
+import type { WeeklyPodcast } from './contexts/WeeklySelectionsContext';
 
-const { width: screenWidth } = Dimensions.get('window');
+const { width: _screenWidth } = Dimensions.get('window');
 
 // Embedded spinner wheel component
 const SpinnerWheel = () => {
@@ -184,7 +183,7 @@ const SpinnerWheel = () => {
 };
 
 // Star burst SVG component
-const StarBurst = ({ style }: { style?: any }) => (
+const StarBurst = ({ style }: { style?: object }) => (
   <Svg width="80" height="80" viewBox="0 0 134 144" fill="none" style={style}>
     <Path
       d="M67 0L78.2696 44.5985L120.165 25.6027L92.3225 62.2203L133.295 83.1314L87.3071 84.1943L96.5041 129.266L67 93.9737L37.4959 129.266L46.693 84.1943L0.704903 83.1314L41.6775 62.2203L13.8355 25.6027L55.7304 44.5985L67 0Z"
@@ -257,7 +256,7 @@ export default function WeeklySelectionScreen() {
     }
   };
 
-  const handleScroll = (event: any) => {
+  const handleScroll = (event: { nativeEvent: { contentOffset: { x: number } } }) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(offsetX / CARD_WIDTH);
     setCurrentIndex(index);
@@ -280,7 +279,7 @@ export default function WeeklySelectionScreen() {
           <View style={styles.headerContent}>
             <Text style={styles.title}>This weeks chosen podcasts</Text>
             <Text style={styles.subtitle}>
-              Three curated options so you don't spend ages choosing.
+              Three curated options so you don&apos;t spend ages choosing.
             </Text>
           </View>
         </View>

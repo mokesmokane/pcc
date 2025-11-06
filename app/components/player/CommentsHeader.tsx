@@ -9,7 +9,7 @@ interface CommentsHeaderProps {
   onViewAll?: () => void;
   showDismiss?: boolean;
   showViewAll?: boolean;
-  dragHandlers?: any;
+  dragHandlers?: object;
 }
 
 export function CommentsHeader({
@@ -30,7 +30,7 @@ export function CommentsHeader({
         <Text style={[styles.title, { fontFamily: fontsLoaded ? 'PaytoneOne_400Regular' : undefined }]}>
           Comments
         </Text>
-        <Text style={[styles.commentCount]}>({commentCount})</Text>
+        <Text style={styles.commentCount}>({commentCount})</Text>
       </View>
       <View style={styles.headerButtons}>
         {showDismiss && onDismiss && (

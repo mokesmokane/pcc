@@ -1,17 +1,22 @@
-import { Database } from '@nozbe/watermelondb';
+import type { Database } from '@nozbe/watermelondb';
 import { Q } from '@nozbe/watermelondb';
 import { Observable } from '@nozbe/watermelondb/utils/rx';
 import { BaseRepository } from './base.repository';
-import Chapter from '../models/chapter.model';
+import type Chapter from '../models/chapter.model';
 import { supabase } from '../../lib/supabase';
 
 export class ChapterRepository extends BaseRepository<Chapter> {
+  private lastSyncTime = new Map<string, number>();
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
   constructor(database: Database) {
     super(database, 'chapters');
   }
 
   async upsertFromRemote(remoteData: any): Promise<Chapter> {
-    const existing = await this.findById(remoteData.id);
+    // Ensure ID is a string (WatermelonDB requirement)
+    const chapterId = String(remoteData.id);
+    const existing = await this.findById(chapterId);
 
     const flatData = {
       episode_id: remoteData.episode_id,
@@ -24,10 +29,10 @@ export class ChapterRepository extends BaseRepository<Chapter> {
     };
 
     if (existing) {
-      return await this.update(remoteData.id, flatData as any);
+      return await this.update(chapterId, flatData as any);
     } else {
       return await this.create({
-        id: remoteData.id,
+        id: chapterId,
         ...flatData,
         created_at: remoteData.created_at ? new Date(remoteData.created_at).getTime() : Date.now(),
         updated_at: remoteData.updated_at ? new Date(remoteData.updated_at).getTime() : Date.now(),
@@ -83,8 +88,19 @@ export class ChapterRepository extends BaseRepository<Chapter> {
     });
   }
 
-  async syncWithRemote(episodeId: string): Promise<void> {
+  async syncWithRemote(episodeId: string, force = false): Promise<void> {
+    // Check cache age
+    const lastSync = this.lastSyncTime.get(episodeId) || 0;
+    const cacheAge = Date.now() - lastSync;
+
+    if (!force && cacheAge < this.CACHE_TTL) {
+      console.log(`✅ Chapters cache valid for episode ${episodeId}, skipping sync`);
+      return;
+    }
+
     try {
+      console.log(`📥 Syncing chapters for episode ${episodeId} (cache age: ${Math.round(cacheAge / 1000)}s)`);
+
       // Fetch chapters from Supabase
       const { data: chapters, error } = await supabase
         .from('chapters')
@@ -92,11 +108,19 @@ export class ChapterRepository extends BaseRepository<Chapter> {
         .eq('episode_id', episodeId)
         .order('start_seconds', { ascending: true });
 
+      // Handle UUID type mismatch (e.g., episode IDs like "substack:post:123")
+      if (error && error.code === '22P02') {
+        console.log(`ℹ️ Episode ${episodeId} has non-UUID format, no chapters available from remote`);
+        this.lastSyncTime.set(episodeId, Date.now());
+        return;
+      }
+
       if (error) throw error;
 
       if (chapters && chapters.length > 0) {
         // Batch upsert all chapters
-        await this.database.write(async () => {
+        const collection = this.collection;
+        await this.database.write(async function batchSyncEpisodeChapters() {
           for (const chapter of chapters) {
             // Convert id to string if it's a number
             const chapterId = String(chapter.id);
@@ -104,7 +128,7 @@ export class ChapterRepository extends BaseRepository<Chapter> {
             // Check if chapter with this specific ID exists
             let existing;
             try {
-              existing = await this.collection.find(chapterId);
+              existing = await collection.find(chapterId);
             } catch {
               existing = null;
             }
@@ -122,7 +146,7 @@ export class ChapterRepository extends BaseRepository<Chapter> {
               });
             } else {
               // Create new chapter
-              await this.collection.create((record: any) => {
+              await collection.create((record: any) => {
                 record._raw.id = chapterId;
                 record._raw.episode_id = String(chapter.episode_id);
                 record._raw.title = String(chapter.title);
@@ -137,7 +161,14 @@ export class ChapterRepository extends BaseRepository<Chapter> {
             }
           }
         });
+
+        console.log(`✅ Synced ${chapters.length} chapters for episode ${episodeId}`);
+      } else {
+        console.log(`ℹ️ No chapters found for episode ${episodeId}`);
       }
+
+      // Update cache timestamp after successful sync (whether or not there were chapters)
+      this.lastSyncTime.set(episodeId, Date.now());
     } catch (error) {
       console.error('Failed to sync chapters:', error);
       throw error;

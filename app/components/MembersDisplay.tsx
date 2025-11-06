@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 interface MemberData {
   id: string;
@@ -54,7 +54,7 @@ export function MembersDisplay({ progressPercentage = 0, members = [], stats }: 
 
       <View style={styles.motivationalSection}>
         <Text style={styles.motivationalText}>
-          💪 {progressPercentage > 0 ? `${Math.round(progressPercentage)}% complete! ` : ''}Be part of the {memberStats.totalMembers > 0 && memberStats.finishedCount > 0 ? Math.round((memberStats.finishedCount / memberStats.totalMembers) * 100) : 0}% who already finished. You're too good to ghost on yourself. 👻
+          💪 {progressPercentage > 0 ? `${Math.round(progressPercentage)}% complete! ` : ''}Be part of the {memberStats.totalMembers > 0 && memberStats.finishedCount > 0 ? Math.round((memberStats.finishedCount / memberStats.totalMembers) * 100) : 0}% who already finished. You&apos;re too good to ghost on yourself. 👻
         </Text>
       </View>
     </View>
@@ -75,19 +75,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     borderWidth: 2,
     borderColor: '#FFFFFF',
-  },
-  addMemberButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#F0CFC5',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  addMemberText: {
-    fontSize: 24,
-    color: '#E05F4E',
   },
   motivationalSection: {
     backgroundColor: '#F8F5F2',

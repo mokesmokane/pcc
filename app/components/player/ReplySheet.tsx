@@ -1,13 +1,13 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Animated,
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,16 +24,16 @@ interface ReplySheetProps {
     avatar?: string;
     text: string;
     time: string;
-    reactions?: Array<{ emoji: string; count: number; userReacted?: boolean }>;
+    reactions?: { emoji: string; count: number; userReacted?: boolean }[];
   } | null;
-  replies: Array<{
+  replies: {
     id: string;
     author: string;
     avatar?: string;
     text: string;
     time: string;
-    reactions?: Array<{ emoji: string; count: number; userReacted?: boolean }>;
-  }>;
+    reactions?: { emoji: string; count: number; userReacted?: boolean }[];
+  }[];
   onSubmitReply: (text: string) => Promise<void>;
   onReact?: (commentId: string, emoji: string) => void;
   onMore?: (commentId: string) => void;
@@ -113,7 +113,7 @@ export function ReplySheet({
               <Text style={[styles.headerTitle, { fontFamily: fontsLoaded ? 'PaytoneOne_400Regular' : undefined }]}>
                 Replies
               </Text>
-              <Text style={[styles.replyCount]}>({replies.length})</Text>
+              <Text style={styles.replyCount}>({replies.length})</Text>
             </View>
             <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color="#8B8680" />

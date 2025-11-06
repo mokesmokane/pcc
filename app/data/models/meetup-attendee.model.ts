@@ -1,5 +1,5 @@
 import { Model } from '@nozbe/watermelondb';
-import { field, date, readonly, relation } from '@nozbe/watermelondb/decorators';
+import { date, field, readonly, relation } from '@nozbe/watermelondb/decorators';
 
 export default class MeetupAttendee extends Model {
   static table = 'meetup_attendees';

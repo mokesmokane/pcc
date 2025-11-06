@@ -1,10 +1,13 @@
-import { Database } from '@nozbe/watermelondb';
+import type { Database } from '@nozbe/watermelondb';
 import { Q } from '@nozbe/watermelondb';
 import { BaseRepository } from './base.repository';
-import Member from '../models/member.model';
+import type Member from '../models/member.model';
 import { supabase } from '../../lib/supabase';
 
 export class MembersRepository extends BaseRepository<Member> {
+  private lastSyncTime = new Map<string, number>();
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
   constructor(database: Database) {
     super(database, 'members');
   }
@@ -23,8 +26,19 @@ export class MembersRepository extends BaseRepository<Member> {
     return members;
   }
 
-  async syncEpisodeMembers(episodeId: string): Promise<void> {
+  async syncEpisodeMembers(episodeId: string, force = false): Promise<void> {
+    // Check cache age
+    const lastSync = this.lastSyncTime.get(episodeId) || 0;
+    const cacheAge = Date.now() - lastSync;
+
+    if (!force && cacheAge < this.CACHE_TTL) {
+      console.log(`✅ Members cache valid for episode ${episodeId}, skipping sync`);
+      return;
+    }
+
     try {
+      console.log(`📥 Syncing members for episode ${episodeId} (cache age: ${Math.round(cacheAge / 1000)}s)`);
+
       // Fetch members from Supabase view
       const { data, error } = await supabase
         .from('episode_members_view')
@@ -44,6 +58,10 @@ export class MembersRepository extends BaseRepository<Member> {
       for (const memberData of data) {
         await this.upsertMember(memberData);
       }
+
+      // Update cache timestamp after successful sync
+      this.lastSyncTime.set(episodeId, Date.now());
+      console.log(`✅ Members synced successfully for episode ${episodeId}`);
     } catch (error) {
       console.error('Error syncing episode members:', error);
     }

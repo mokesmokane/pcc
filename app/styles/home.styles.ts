@@ -56,6 +56,22 @@ export const styles = StyleSheet.create({
       paddingBottom: 40,
     },
     sectionWrapper: {
-      marginBottom: 24,
+      marginBottom: 12,
+    },
+    headerContainer: {
+      paddingBottom: 16,
+    },
+    welcomeTitle: {
+      fontSize: 32,
+      fontFamily: 'PaytoneOne_400Regular',
+      color: '#E05F4E',
+      marginBottom: 4,
+      lineHeight: 36,
+      includeFontPadding: false,
+    },
+    welcomeSubtitle: {
+      fontSize: 15,
+      color: '#6B5E57',
+      fontWeight: '500',
     },
   });
