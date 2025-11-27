@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 6, // Reset database to fix queuing issues
+  version: 7, // Added conversation_starters table
   tables: [
     tableSchema({
       name: 'user_episode_progress',
@@ -60,6 +60,7 @@ export const schema = appSchema({
         { name: 'user_id', type: 'string', isIndexed: true },
         { name: 'content', type: 'string' },
         { name: 'parent_id', type: 'string', isOptional: true, isIndexed: true },
+        { name: 'starter_id', type: 'string', isOptional: true, isIndexed: true },
         // Denormalized user data
         { name: 'username', type: 'string', isOptional: true },
         { name: 'avatar_url', type: 'string', isOptional: true },
@@ -261,6 +262,20 @@ export const schema = appSchema({
         { name: 'question_id', type: 'string', isIndexed: true },
         { name: 'option_value', type: 'number' },
         { name: 'response_type', type: 'string' }, // 'agree' or 'disagree'
+        // Timestamps and sync
+        { name: 'created_at', type: 'number' },
+        { name: 'updated_at', type: 'number' },
+        { name: 'synced_at', type: 'number', isOptional: true },
+        { name: 'needs_sync', type: 'boolean' },
+      ],
+    }),
+    tableSchema({
+      name: 'conversation_starters',
+      columns: [
+        { name: 'episode_id', type: 'string', isIndexed: true },
+        { name: 'question', type: 'string' },
+        { name: 'order_position', type: 'number' },
+        { name: 'image_url', type: 'string', isOptional: true },
         // Timestamps and sync
         { name: 'created_at', type: 'number' },
         { name: 'updated_at', type: 'number' },

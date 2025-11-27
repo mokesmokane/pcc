@@ -13,6 +13,7 @@ export default class Comment extends Model {
   @field('user_id') userId!: string;
   @field('content') content!: string;
   @field('parent_id') parentId?: string;
+  @field('starter_id') starterId?: string;
 
   // Denormalized user data
   @field('username') username?: string;

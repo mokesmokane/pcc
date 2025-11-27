@@ -14,8 +14,6 @@ export class WeeklySelectionRepository extends BaseRepository<WeeklySelection> {
   }
 
   async upsertFromRemote(remoteData: any): Promise<WeeklySelection> {
-    const existing = await this.findById(remoteData.id);
-
     // Flatten the data structure - use snake_case for database fields
     const flatData = {
       week_start: remoteData.week_start,
@@ -30,18 +28,35 @@ export class WeeklySelectionRepository extends BaseRepository<WeeklySelection> {
       duration: remoteData.podcast_episode?.duration || 0,
       category: remoteData.podcast_episode?.category || '',
       published_at: remoteData.podcast_episode?.published_at || '',
-      synced_at: Date.now(),  
+      synced_at: Date.now(),
       needs_sync: false,
     };
 
-    if (existing) {
-      return await this.update(remoteData.id, flatData as any);
-    } else {
-      const created = await this.create({
-        id: remoteData.id,
-        ...flatData,
-      } as any);
-      return created;
+    try {
+      const existing = await this.findById(remoteData.id);
+
+      if (existing) {
+        return await this.update(remoteData.id, flatData as any);
+      } else {
+        const created = await this.create({
+          id: remoteData.id,
+          ...flatData,
+        } as any);
+        return created;
+      }
+    } catch (error: any) {
+      // Handle race condition where record was created between findById and create
+      if (error?.message?.includes('SQLITE_CONSTRAINT_PRIMARYKEY') ||
+          error?.message?.includes('UNIQUE constraint failed')) {
+        console.warn(`[WeeklySelection] Record ${remoteData.id} already exists, updating instead`);
+
+        // Retry with update
+        const existing = await this.findById(remoteData.id);
+        if (existing) {
+          return await this.update(remoteData.id, flatData as any);
+        }
+      }
+      throw error;
     }
   }
 

@@ -15,6 +15,14 @@ class DownloadService {
   private downloadDir = `${FileSystem.documentDirectory}podcasts/`;
   private downloadTasks = new Map<string, FileSystem.DownloadResumable>();
 
+  // Sanitize episode ID to create a valid filename
+  private sanitizeForFilename(id: string): string {
+    return id
+      .replace(/[^a-zA-Z0-9-_]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '');
+  }
+
   async ensureDirectoryExists() {
     const dirInfo = await FileSystem.getInfoAsync(this.downloadDir);
     if (!dirInfo.exists) {
@@ -34,7 +42,8 @@ class DownloadService {
   ): Promise<string> {
     await this.ensureDirectoryExists();
 
-    const fileName = `${episodeId}.mp3`;
+    const safeId = this.sanitizeForFilename(episodeId);
+    const fileName = `${safeId}.mp3`;
     const localPath = `${this.downloadDir}${fileName}`;
 
     // Check if already downloaded
@@ -95,7 +104,8 @@ class DownloadService {
   }
 
   async deleteDownload(episodeId: string) {
-    const localPath = `${this.downloadDir}${episodeId}.mp3`;
+    const safeId = this.sanitizeForFilename(episodeId);
+    const localPath = `${this.downloadDir}${safeId}.mp3`;
 
     try {
       await FileSystem.deleteAsync(localPath, { idempotent: true });
@@ -124,9 +134,16 @@ class DownloadService {
     const download = await this.getDownloadedEpisode(episodeId);
     if (!download) return false;
 
-    // Verify file still exists
-    const fileInfo = await FileSystem.getInfoAsync(download.localPath);
-    return fileInfo.exists;
+    // Verify file still exists using sanitized filename
+    const safeId = this.sanitizeForFilename(episodeId);
+    const localPath = `${this.downloadDir}${safeId}.mp3`;
+    try {
+      const fileInfo = await FileSystem.getInfoAsync(localPath);
+      return fileInfo.exists;
+    } catch (error) {
+      console.error('[DownloadService] isEpisodeDownloaded error:', error);
+      return false;
+    }
   }
 
   private async saveDownloadInfo(downloadInfo: DownloadedEpisode) {
@@ -147,7 +164,9 @@ class DownloadService {
 
     for (const download of downloads) {
       try {
-        const fileInfo = await FileSystem.getInfoAsync(download.localPath);
+        const safeId = this.sanitizeForFilename(download.id);
+        const localPath = `${this.downloadDir}${safeId}.mp3`;
+        const fileInfo = await FileSystem.getInfoAsync(localPath);
         if (fileInfo.exists && 'size' in fileInfo) {
           totalSize += fileInfo.size;
         }

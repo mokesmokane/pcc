@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
@@ -13,12 +14,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
-import { useProfile } from '../contexts/ProfileContext';
+import { useCurrentProfile, useUpdateProfile, useProfileInitials } from '../hooks/queries/useProfile';
+import { useCurrentTrack } from '../stores/audioStore.hooks';
 
 export default function ProfileScreen() {
   const { user } = useAuth();
-  const { profile, loading, updateProfile, getInitials } = useProfile();
+  const { data: profile, isLoading: loading } = useCurrentProfile();
+  const updateProfileMutation = useUpdateProfile();
+  const initials = useProfileInitials();
+  const { currentTrack } = useCurrentTrack();
   const [username, setUsername] = useState('');
   const [avatarUri, setAvatarUri] = useState<string | null>(null); 
   const [saving, setSaving] = useState(false);
@@ -107,18 +113,14 @@ export default function ProfileScreen() {
 
     setSaving(true);
     try {
-      const success = await updateProfile(
-        username.trim() || null,
-        avatarUri || undefined
-      );
+      await updateProfileMutation.mutateAsync({
+        username: username.trim() || null,
+        avatarUrl: avatarUri || undefined,
+      });
 
-      if (success) {
-        Alert.alert('Success', 'Profile updated successfully!');
-        setAvatarUri(null); // Clear the new avatar URI since it's been saved
-        setHasChanges(false);
-      } else {
-        Alert.alert('Error', 'Failed to update profile. Please try again.');
-      }
+      Alert.alert('Success', 'Profile updated successfully!');
+      setAvatarUri(null); // Clear the new avatar URI since it's been saved
+      setHasChanges(false);
     } catch (error) {
       console.error('Error saving profile:', error);
       Alert.alert('Error', 'An unexpected error occurred. Please try again.');
@@ -168,7 +170,7 @@ export default function ProfileScreen() {
                 <Image source={{ uri: displayAvatar }} style={styles.avatar} />
               ) : (
                 <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarText}>{getInitials()}</Text>
+                  <Text style={styles.avatarText}>{initials}</Text>
                 </View>
               )}
               <View style={styles.cameraIconContainer}>
@@ -227,3 +229,129 @@ export default function ProfileScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F4F1ED',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#8B8680',
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 24,
+  },
+  avatarSection: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  avatarButton: {
+    position: 'relative',
+  },
+  avatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+  },
+  avatarPlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#E05F4E',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: 40,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  cameraIconContainer: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#403837',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#F4F1ED',
+  },
+  changePhotoText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#8B8680',
+  },
+  formSection: {
+    gap: 20,
+  },
+  inputGroup: {
+    gap: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#403837',
+  },
+  input: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    color: '#403837',
+    borderWidth: 1,
+    borderColor: '#E8E5E1',
+  },
+  emailGroup: {
+    gap: 8,
+  },
+  emailText: {
+    fontSize: 16,
+    color: '#8B8680',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 32,
+  },
+  button: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8E5E1',
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#403837',
+  },
+  saveButton: {
+    backgroundColor: '#E05F4E',
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+});

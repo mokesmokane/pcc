@@ -307,8 +307,8 @@ export default function WeeklySelectionScreen() {
                           <View style={styles.spinnerCategoryPill}>
                             <Text style={styles.spinnerCategoryText}>Wild card</Text>
                           </View>
-                          <Text style={[styles.podcastTitle, styles.spinnerTitle]}>{podcast.title}</Text>
-                          <Text style={styles.spinnerSubtitle}>{podcast.source}</Text>
+                          <Text style={[styles.podcastTitle, styles.spinnerTitle]}>{podcast.source}</Text>
+                          <Text style={styles.spinnerSubtitle}>{podcast.title}</Text>
                         </View>
                         <View style={styles.spinnerContainer}>
                           <SpinnerWheel />

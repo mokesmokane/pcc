@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Q } from '@nozbe/watermelondb';
 import { useDatabase } from '@/contexts/DatabaseContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { queryKeys } from './queryKeys';
@@ -20,7 +21,7 @@ export function useCurrentProfile() {
     console.log('[useCurrentProfile] Setting up observable subscription for user:', user.id);
 
     const subscription = profileRepository
-      .observeQuery([{ column: 'user_id', value: user.id }])
+      .observeQuery([Q.where('user_id', user.id)])
       .subscribe((profiles) => {
         console.log('🔔 Profile changed, invalidating cache');
         queryClient.invalidateQueries({
@@ -65,7 +66,7 @@ export function useProfile(userId: string | null) {
     console.log('[useProfile] Setting up observable subscription for user:', userId);
 
     const subscription = profileRepository
-      .observeQuery([{ column: 'user_id', value: userId }])
+      .observeQuery([Q.where('user_id', userId)])
       .subscribe((profiles) => {
         console.log('🔔 Profile changed for user:', userId);
         queryClient.invalidateQueries({

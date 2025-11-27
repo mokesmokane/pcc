@@ -24,12 +24,10 @@ interface MeetupCardProps {
 }
 
 export function MeetupCard({
-  _id,
   location,
   meetupDate,
   meetupTime,
   venue,
-  _address,
   attendees = [],
   attendeeCount,
   spotsLeft,
@@ -133,7 +131,9 @@ export function MeetupCard({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'transparent',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
   },
   mainContent: {
     flexDirection: 'row',

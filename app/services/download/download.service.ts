@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { Platform } from 'react-native';
 import * as FileSystem from 'expo-file-system';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const DOWNLOADS_KEY = '@downloaded_episodes';
 
 interface Download {
   id: string;
@@ -13,6 +16,12 @@ interface Download {
   status: 'queued' | 'downloading' | 'paused' | 'completed' | 'error';
   error?: string;
   downloadResumable?: FileSystem.DownloadResumable;
+  // Metadata for saving to downloads list
+  metadata?: {
+    title: string;
+    podcastTitle: string;
+    artwork: string;
+  };
 }
 
 interface DownloadState {
@@ -75,14 +84,26 @@ export class DownloadService {
     this.ensureDownloadDirectory();
   }
 
+  // Sanitize episode ID to create a valid filename (remove colons, slashes, etc.)
+  private sanitizeForFilename(id: string): string {
+    return id
+      .replace(/[^a-zA-Z0-9-_]/g, '_') // Replace invalid chars with underscore
+      .replace(/_+/g, '_') // Collapse multiple underscores
+      .replace(/^_|_$/g, ''); // Trim underscores from start/end
+  }
+
   private async ensureDownloadDirectory(): Promise<void> {
+    console.log('[Download] ensureDownloadDirectory called, dir:', this.downloadDir);
     try {
       const dirInfo = await FileSystem.getInfoAsync(this.downloadDir);
+      console.log('[Download] Directory info:', dirInfo);
       if (!dirInfo.exists) {
+        console.log('[Download] Creating download directory...');
         await FileSystem.makeDirectoryAsync(this.downloadDir, { intermediates: true });
+        console.log('[Download] Directory created successfully');
       }
     } catch (error) {
-      console.error('Failed to create download directory:', error);
+      console.error('[Download] Failed to create download directory:', error);
     }
   }
 
@@ -91,13 +112,34 @@ export class DownloadService {
     id: string;
     title: string;
     audioUrl: string;
+    podcastTitle?: string;
+    artwork?: string;
   }): Promise<string> {
-    const downloadId = `download_${episode.id}_${Date.now()}`;
-    const fileName = `${episode.id}.mp3`;
+    console.log('[Download] queueDownload called with:', {
+      id: episode.id,
+      title: episode.title,
+      audioUrl: episode.audioUrl,
+      podcastTitle: episode.podcastTitle,
+      artwork: episode.artwork,
+    });
+
+    const safeId = this.sanitizeForFilename(episode.id);
+    const downloadId = `download_${safeId}_${Date.now()}`;
+    const fileName = `${safeId}.mp3`;
     const filePath = `${this.downloadDir}${fileName}`;
+
+    console.log('[Download] Sanitized ID:', { original: episode.id, sanitized: safeId });
+
+    console.log('[Download] Generated paths:', {
+      downloadId,
+      fileName,
+      filePath,
+      downloadDir: this.downloadDir,
+    });
 
     // Check if already downloaded
     const exists = await this.isDownloaded(episode.id);
+    console.log('[Download] Already downloaded?', exists);
     if (exists) {
       console.log('Episode already downloaded:', episode.id);
       return downloadId;
@@ -112,6 +154,11 @@ export class DownloadService {
       totalBytes: 0,
       downloadedBytes: 0,
       status: 'queued',
+      metadata: {
+        title: episode.title,
+        podcastTitle: episode.podcastTitle || '',
+        artwork: episode.artwork || '',
+      },
     };
 
     useDownloadStore.getState().addDownload(download);
@@ -145,8 +192,19 @@ export class DownloadService {
 
   // Start a download
   private async startDownload(downloadId: string): Promise<void> {
+    console.log('[Download] startDownload called for:', downloadId);
+
     const download = useDownloadStore.getState().getDownload(downloadId);
-    if (!download) return;
+    if (!download) {
+      console.log('[Download] No download found for id:', downloadId);
+      return;
+    }
+
+    console.log('[Download] Starting download:', {
+      url: download.url,
+      filePath: download.filePath,
+      episodeId: download.episodeId,
+    });
 
     useDownloadStore.getState().updateDownload(downloadId, {
       status: 'downloading',
@@ -168,6 +226,7 @@ export class DownloadService {
     };
 
     try {
+      console.log('[Download] Creating downloadResumable...');
       const downloadResumable = FileSystem.createDownloadResumable(
         download.url,
         download.filePath,
@@ -179,19 +238,29 @@ export class DownloadService {
         downloadResumable,
       });
 
+      console.log('[Download] Calling downloadAsync...');
       const result = await downloadResumable.downloadAsync();
+      console.log('[Download] downloadAsync result:', result);
 
       if (result) {
+        console.log('[Download] Download completed successfully');
         useDownloadStore.getState().updateDownload(downloadId, {
           status: 'completed',
           progress: 100,
         });
 
-        // Save download record to database
-        await this.saveDownloadRecord(download.episodeId, download.filePath);
+        // Save download record to AsyncStorage
+        await this.saveDownloadRecord(download.episodeId, download.filePath, download.metadata);
+      } else {
+        console.log('[Download] downloadAsync returned null/undefined');
       }
     } catch (error) {
-      console.error('Download error:', error);
+      console.error('[Download] Download error:', error);
+      console.error('[Download] Error details:', {
+        name: error instanceof Error ? error.name : 'unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       useDownloadStore.getState().updateDownload(downloadId, {
         status: 'error',
         error: error instanceof Error ? error.message : 'Download failed',
@@ -322,21 +391,31 @@ export class DownloadService {
 
   // Check if episode is downloaded
   async isDownloaded(episodeId: string): Promise<boolean> {
-    const filePath = `${this.downloadDir}${episodeId}.mp3`;
-    const fileInfo = await FileSystem.getInfoAsync(filePath);
-    return fileInfo.exists;
+    const safeId = this.sanitizeForFilename(episodeId);
+    const filePath = `${this.downloadDir}${safeId}.mp3`;
+    console.log('[Download] isDownloaded check for:', { episodeId, safeId, filePath });
+    try {
+      const fileInfo = await FileSystem.getInfoAsync(filePath);
+      console.log('[Download] isDownloaded fileInfo:', fileInfo);
+      return fileInfo.exists;
+    } catch (error) {
+      console.error('[Download] isDownloaded error:', error);
+      return false;
+    }
   }
 
   // Get downloaded file path
   async getDownloadedFilePath(episodeId: string): Promise<string | null> {
-    const filePath = `${this.downloadDir}${episodeId}.mp3`;
+    const safeId = this.sanitizeForFilename(episodeId);
+    const filePath = `${this.downloadDir}${safeId}.mp3`;
     const fileInfo = await FileSystem.getInfoAsync(filePath);
     return fileInfo.exists ? filePath : null;
   }
 
   // Delete downloaded file
   async deleteDownload(episodeId: string): Promise<void> {
-    const filePath = `${this.downloadDir}${episodeId}.mp3`;
+    const safeId = this.sanitizeForFilename(episodeId);
+    const filePath = `${this.downloadDir}${safeId}.mp3`;
 
     try {
       await FileSystem.deleteAsync(filePath, { idempotent: true });
@@ -382,18 +461,55 @@ export class DownloadService {
     }
   }
 
-  // Database operations (to be implemented with actual DB)
+  // Save download metadata to AsyncStorage
   private async saveDownloadRecord(
     episodeId: string,
-    filePath: string
+    filePath: string,
+    metadata?: { title: string; podcastTitle: string; artwork: string }
   ): Promise<void> {
-    // TODO: Save to database
-    console.log('Save download record:', episodeId, filePath);
+    console.log('[Download] saveDownloadRecord:', { episodeId, filePath, metadata });
+    try {
+      const stored = await AsyncStorage.getItem(DOWNLOADS_KEY);
+      const downloads = stored ? JSON.parse(stored) : [];
+
+      // Check if already saved
+      const exists = downloads.some((d: { id: string }) => d.id === episodeId);
+      if (exists) {
+        console.log('[Download] Record already exists for:', episodeId);
+        return;
+      }
+
+      const newDownload = {
+        id: episodeId,
+        title: metadata?.title || 'Unknown',
+        podcastTitle: metadata?.podcastTitle || 'Unknown Podcast',
+        artwork: metadata?.artwork || '',
+        audioUrl: '', // Original URL not needed since we have local file
+        localPath: filePath,
+        downloadedAt: Date.now(),
+      };
+
+      downloads.push(newDownload);
+      await AsyncStorage.setItem(DOWNLOADS_KEY, JSON.stringify(downloads));
+      console.log('[Download] Saved download record successfully');
+    } catch (error) {
+      console.error('[Download] Failed to save download record:', error);
+    }
   }
 
   private async removeDownloadRecord(episodeId: string): Promise<void> {
-    // TODO: Remove from database
-    console.log('Remove download record:', episodeId);
+    console.log('[Download] removeDownloadRecord:', episodeId);
+    try {
+      const stored = await AsyncStorage.getItem(DOWNLOADS_KEY);
+      if (!stored) return;
+
+      const downloads = JSON.parse(stored);
+      const filtered = downloads.filter((d: { id: string }) => d.id !== episodeId);
+      await AsyncStorage.setItem(DOWNLOADS_KEY, JSON.stringify(filtered));
+      console.log('[Download] Removed download record successfully');
+    } catch (error) {
+      console.error('[Download] Failed to remove download record:', error);
+    }
   }
 }
 

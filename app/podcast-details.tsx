@@ -8,10 +8,13 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Button } from './components/ui/button';
 import { useWeeklySelections } from './contexts/WeeklySelectionsContext';
 import { useAuth } from './contexts/AuthContext';
 import { styles } from './podcast-details.styles';
+
+const CURRENT_PODCAST_KEY = '@current_podcast_id';
 
 export default function PodcastDetailsScreen() {
   const router = useRouter();
@@ -36,6 +39,8 @@ export default function PodcastDetailsScreen() {
       const success = await selectEpisode(id as string);
 
       if (success) {
+        // Save as the current podcast so it shows first on home screen
+        await AsyncStorage.setItem(CURRENT_PODCAST_KEY, id as string);
         // Navigate to the home screen after choosing
         router.replace('/home');
       } else {

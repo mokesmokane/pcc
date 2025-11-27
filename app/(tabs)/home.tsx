@@ -1,6 +1,6 @@
 import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
 import { useRouter, useFocusEffect } from 'expo-router';
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   ActivityIndicator,
   AppState,
@@ -14,15 +14,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CurrentPodcastSection from '../components/CurrentPodcastSection';
-import InPersonClubSection from '../components/InPersonClubSection';
-import PoddleboxSection from '../components/PoddleboxSection';
 import RestOfLineupSection from '../components/RestOfLineupSection';
 import { DiscussionFlow } from '../components/DiscussionFlow';
 import { PollReviewAllResults } from '../components/PollReviewAllResults';
 import { useWeeklySelections, type WeeklyPodcast } from '@/contexts/WeeklySelectionsContext';
 import { useMultipleEpisodeProgress } from '@/hooks/queries/usePodcastMetadata';
-import { useProfile } from '../contexts/ProfileContext';
+import { useCurrentProfile } from '../hooks/queries/useProfile';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/hooks/queries/queryKeys';
 import { useAuth } from '../contexts/AuthContext';
+import { useMeetups } from '../contexts/MeetupsContext';
 import { useCurrentPodcastStore } from '../stores/currentPodcastStore';
 import { styles } from '../styles/home.styles';
 
@@ -35,12 +36,14 @@ export default function HomeScreen() {
     PaytoneOne_400Regular,
   });
   const { userChoices, userChoice, selections, selectEpisode } = useWeeklySelections();
-  const { profile } = useProfile();
+  const { data: profile } = useCurrentProfile();
   const { user } = useAuth();
   const { currentPodcastId, setCurrentPodcastId } = useCurrentPodcastStore();
+  const queryClient = useQueryClient();
+  const { meetups, userStatuses, loadMeetups } = useMeetups();
 
-  // Get all episode IDs for batch progress loading
-  const userChoiceIds = userChoices.map(p => p.id);
+  // Get all episode IDs for batch progress loading (memoized to prevent infinite loops)
+  const userChoiceIds = useMemo(() => userChoices.map(p => p.id), [userChoices]);
   const { data: progressMapData } = useMultipleEpisodeProgress(userChoiceIds);
   const [showDiscussionFlow, setShowDiscussionFlow] = useState(false);
   const [showPollReview, setShowPollReview] = useState(false);
@@ -83,7 +86,14 @@ export default function HomeScreen() {
     loadCurrentPodcast();
   }, [userChoices, setCurrentPodcastId]);
 
-  // Refresh current podcast when screen comes into focus
+  // Load meetups for the current podcast
+  useEffect(() => {
+    if (currentPodcastId) {
+      loadMeetups(currentPodcastId);
+    }
+  }, [currentPodcastId, loadMeetups]);
+
+  // Refresh current podcast and progress when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       const refreshCurrentPodcast = async () => {
@@ -97,7 +107,19 @@ export default function HomeScreen() {
         }
       };
       refreshCurrentPodcast();
-    }, [userChoices, setCurrentPodcastId])
+
+      // Invalidate progress cache to get fresh data after returning from player
+      if (user?.id) {
+        console.log('🔄 Home screen focused, invalidating progress cache...');
+        // Use a more general invalidation that won't cause loops
+        queryClient.invalidateQueries({
+          predicate: (query) =>
+            Array.isArray(query.queryKey) &&
+            query.queryKey[0] === 'podcastMetadata' &&
+            query.queryKey[1] === 'multipleProgress',
+        });
+      }
+    }, [userChoices, setCurrentPodcastId, user?.id, queryClient])
   );
 
   // Reorder podcasts with current one first
@@ -107,6 +129,11 @@ export default function HomeScreen() {
         ...userChoices.filter(p => p.id !== currentPodcastId)
       ]
     : userChoices;
+
+  // Find a meetup the user has joined for the current podcast
+  const joinedMeetup = useMemo(() => {
+    return meetups.find(meetup => userStatuses.get(meetup.id) === 'confirmed') || null;
+  }, [meetups, userStatuses]);
 
   // Get all podcasts except the current one
   const remainingPodcasts = Array.from(selections.values()).filter(
@@ -119,10 +146,13 @@ export default function HomeScreen() {
   };
 
   // Get progress for an episode from the React Query cache
-  const getProgressForEpisode = (episodeId: string): number => {
-    if (!progressMapData) return 0;
+  const getProgressForEpisode = (episodeId: string) => {
+    if (!progressMapData) return { progressPercentage: 0, completed: false };
     const progress = progressMapData.get(episodeId);
-    return progress?.progressPercentage || 0;
+    return {
+      progressPercentage: progress?.progressPercentage || 0,
+      completed: progress?.completed || false,
+    };
   };
 
   const handlePodcastPress = async (podcast: WeeklyPodcast) => {
@@ -137,6 +167,20 @@ export default function HomeScreen() {
     // Get progress data from React Query cache
     const progress = progressMapData?.get(podcast.id);
 
+    // Reset to beginning if:
+    // 1. Episode is marked completed (listen again)
+    // 2. Position > duration (corrupted data)
+    // 3. Progress percentage >= 95%
+    const isCorrupted = progress?.currentPosition && progress?.totalDuration &&
+      progress.currentPosition > progress.totalDuration;
+    const isCompleted = progress?.completed || (progress?.progressPercentage ?? 0) >= 95 || isCorrupted;
+    const startPosition = isCompleted ? 0 : (progress?.currentPosition || 0);
+
+    // Use podcast duration if saved duration seems wrong (< 60 seconds is suspicious for a podcast)
+    const duration = (progress?.totalDuration && progress.totalDuration >= 60)
+      ? progress.totalDuration
+      : podcast.durationSeconds;
+
     router.push({
       pathname: '/player',
       params: {
@@ -146,8 +190,8 @@ export default function HomeScreen() {
         trackArtwork: podcast.image || '',
         trackAudioUrl: podcast.audioUrl,
         trackDescription: podcast.description,
-        trackDuration: progress?.totalDuration?.toString() || podcast.duration?.toString() || '0',
-        trackPosition: progress?.currentPosition?.toString() || '0',
+        trackDuration: duration?.toString() || '0',
+        trackPosition: startPosition.toString(),
       },
     });
   };
@@ -175,6 +219,17 @@ export default function HomeScreen() {
     // Get progress data from React Query cache
     const progress = progressMapData?.get(podcast.id);
 
+    // Reset to beginning if completed or corrupted
+    const isCorrupted = progress?.currentPosition && progress?.totalDuration &&
+      progress.currentPosition > progress.totalDuration;
+    const isCompleted = progress?.completed || (progress?.progressPercentage ?? 0) >= 95 || isCorrupted;
+    const startPosition = isCompleted ? 0 : (progress?.currentPosition || 0);
+
+    // Use podcast duration if saved duration seems wrong
+    const duration = (progress?.totalDuration && progress.totalDuration >= 60)
+      ? progress.totalDuration
+      : podcast.durationSeconds;
+
     router.push({
       pathname: '/player',
       params: {
@@ -184,8 +239,50 @@ export default function HomeScreen() {
         trackArtwork: podcast.image || '',
         trackAudioUrl: podcast.audioUrl,
         trackDescription: podcast.description,
-        trackDuration: progress?.totalDuration?.toString() || podcast.duration?.toString() || '0',
-        trackPosition: progress?.currentPosition?.toString() || '0',
+        trackDuration: duration?.toString() || '0',
+        trackPosition: startPosition.toString(),
+      },
+    });
+  };
+
+  // Play a podcast without changing the current selection
+  const handlePlayOtherPodcast = async (podcast: WeeklyPodcast) => {
+    // Check if already joined
+    const alreadyJoined = isJoined(podcast.id);
+
+    // If not joined, add to selections first
+    if (!alreadyJoined) {
+      const success = await selectEpisode(podcast.id);
+      if (!success) {
+        return; // Don't navigate if join failed
+      }
+    }
+
+    // Get progress data from React Query cache
+    const progress = progressMapData?.get(podcast.id);
+
+    // Reset to beginning if completed or corrupted
+    const isCorrupted = progress?.currentPosition && progress?.totalDuration &&
+      progress.currentPosition > progress.totalDuration;
+    const isCompleted = progress?.completed || (progress?.progressPercentage ?? 0) >= 95 || isCorrupted;
+    const startPosition = isCompleted ? 0 : (progress?.currentPosition || 0);
+
+    // Use podcast duration if saved duration seems wrong
+    const duration = (progress?.totalDuration && progress.totalDuration >= 60)
+      ? progress.totalDuration
+      : podcast.durationSeconds;
+
+    router.push({
+      pathname: '/player',
+      params: {
+        trackId: podcast.id,
+        trackTitle: podcast.title,
+        trackArtist: podcast.source,
+        trackArtwork: podcast.image || '',
+        trackAudioUrl: podcast.audioUrl,
+        trackDescription: podcast.description,
+        trackDuration: duration?.toString() || '0',
+        trackPosition: startPosition.toString(),
       },
     });
   };
@@ -197,17 +294,19 @@ export default function HomeScreen() {
   };
 
   const handlePollPress = () => {
-      setShowDiscussionFlow(true);
-  };
-
-  const handlePollReviewPress = () => {
-    setShowPollReview(true);
+    // Navigate to Have Your Say page instead of showing poll directly
+    router.push('/have-your-say');
   };
 
   const handlePoddleboxPress = () => {
     // Rick roll for the time being
     wasRickRolled.current = true;
     Linking.openURL('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+  };
+
+  const handleMeetInPersonPress = () => {
+    // Navigate to events tab
+    router.push('/events');
   };
 
   const handleCloseDiscussion = () => {
@@ -267,26 +366,26 @@ export default function HomeScreen() {
         <PoddleboxSection />
         </View> */}
         <View style={styles.sectionWrapper}>
+        <Text style={styles.sectionHeading}>Your club</Text>
         <CurrentPodcastSection
           podcasts={orderedUserChoices}
           onPodcastPress={handlePodcastPress}
           getProgressForEpisode={getProgressForEpisode}
           onPollCompletePress={handlePollPress}
-          onPollReviewPress={handlePollReviewPress}
           onPoddleboxPress={handlePoddleboxPress}
+          onMeetInPersonPress={handleMeetInPersonPress}
+          joinedMeetup={joinedMeetup}
         />
         </View>
         <View style={styles.sectionWrapper}>
         <RestOfLineupSection
           podcasts={remainingPodcasts}
-          onJoinPress={handleJoinPodcast}
+          onJoinPress={handlePlayOtherPodcast}
           onUnlockWildCard={handleUnlockWildCard}
           isJoined={isJoined}
           getProgressForEpisode={getProgressForEpisode}
+          getMembersForEpisode={() => []}
         />
-        </View>
-        <View style={styles.sectionWrapper}>
-        <InPersonClubSection />
         </View>
       </ScrollView>
 

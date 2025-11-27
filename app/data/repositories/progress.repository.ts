@@ -1,5 +1,6 @@
 import type { Database} from '@nozbe/watermelondb';
 import { Q } from '@nozbe/watermelondb';
+import { Observable } from '@nozbe/watermelondb/utils/rx';
 import type UserEpisodeProgress from '../../models/UserEpisodeProgress';
 import { BaseRepository } from './base.repository';
 import { supabase } from '../../lib/supabase';
@@ -32,12 +33,44 @@ export class ProgressRepository extends BaseRepository<UserEpisodeProgress> {
     return progress[0] || null;
   }
 
+  /**
+   * Observe progress for a specific episode
+   */
+  observeProgress(userId: string, episodeId: string): Observable<UserEpisodeProgress[]> {
+    return this.database
+      .get<UserEpisodeProgress>('user_episode_progress')
+      .query(
+        Q.where('user_id', userId),
+        Q.where('episode_id', episodeId)
+      )
+      .observe();
+  }
+
+  /**
+   * Observe all progress for a user
+   */
+  observeAllProgress(userId: string): Observable<UserEpisodeProgress[]> {
+    return this.database
+      .get<UserEpisodeProgress>('user_episode_progress')
+      .query(Q.where('user_id', userId))
+      .observe();
+  }
+
   async saveProgress(
     userId: string,
     episodeId: string,
     position: number,
     duration: number
   ): Promise<UserEpisodeProgress> {
+    // Sanity check: don't save if position > duration (indicates bad data)
+    if (duration > 0 && position > duration * 1.1) { // Allow 10% buffer for rounding
+      console.warn(`[ProgressRepository] Rejecting invalid progress: position (${position}) > duration (${duration}) for episode ${episodeId}`);
+      // Return existing progress or throw
+      const existing = await this.getProgress(userId, episodeId);
+      if (existing) return existing;
+      throw new Error('Invalid progress data: position exceeds duration');
+    }
+
     const collection = this.database.get<UserEpisodeProgress>('user_episode_progress');
 
     // Check if progress exists
@@ -45,19 +78,26 @@ export class ProgressRepository extends BaseRepository<UserEpisodeProgress> {
 
     if (existing) {
       // Update existing progress
+      // Don't overwrite a valid duration with 0 - keep existing if new duration is invalid
+      const effectiveDuration = duration > 0 ? duration : existing.totalDuration;
+
+      // Keep completed flag sticky - once completed, stay completed (for "listen again" feature)
+      const isNowComplete = effectiveDuration > 0 && position >= effectiveDuration * 0.95;
+      const shouldBeCompleted = existing.completed || isNowComplete;
+
       const updated = await this.database.write(async function updateExistingProgress() {
         return await existing.update((progress) => {
           progress.currentPosition = position;
-          progress.totalDuration = duration;
+          progress.totalDuration = effectiveDuration;
           progress.lastPlayedAt = Date.now();
-          progress.completed = duration > 0 && position >= duration * 0.95; // Mark as completed if >95% watched
+          progress.completed = shouldBeCompleted;
           progress.needsSync = true;
         });
       });
 
-      // Track for batched sync (NEW)
+      // Track for batched sync (NEW) - use effective duration
       const key = `${userId}_${episodeId}`;
-      this.pendingSyncs.set(key, { userId, episodeId, position, duration });
+      this.pendingSyncs.set(key, { userId, episodeId, position, duration: effectiveDuration });
 
       // Auto-flush after debounce period (NEW)
       if (this.flushTimer) clearTimeout(this.flushTimer);
@@ -174,6 +214,27 @@ export class ProgressRepository extends BaseRepository<UserEpisodeProgress> {
     }
   }
 
+  /**
+   * Clear progress for a specific episode (deletes local WatermelonDB record)
+   * Useful for manually clearing corrupted data
+   */
+  async clearProgress(userId: string, episodeId: string): Promise<boolean> {
+    try {
+      const progress = await this.getProgress(userId, episodeId);
+      if (progress) {
+        await this.database.write(async () => {
+          await progress.markAsDeleted();
+        });
+        console.log(`[ProgressRepository] Cleared progress for episode ${episodeId}`);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('[ProgressRepository] Error clearing progress:', error);
+      return false;
+    }
+  }
+
   async getAllUnsyncedProgress(): Promise<UserEpisodeProgress[]> {
     return await this.database
       .get<UserEpisodeProgress>('user_episode_progress')
@@ -217,9 +278,39 @@ export class ProgressRepository extends BaseRepository<UserEpisodeProgress> {
         return;
       }
 
+      // Get all local progress for this user
+      const localProgress = await this.database
+        .get<UserEpisodeProgress>('user_episode_progress')
+        .query(Q.where('user_id', userId))
+        .fetch();
+
+      // If no remote progress, delete all local progress (it was deleted remotely)
       if (!remoteProgress || remoteProgress.length === 0) {
-        console.log('No remote progress found for user');
+        if (localProgress.length > 0) {
+          console.log(`No remote progress found, deleting ${localProgress.length} local record(s)`);
+          await this.database.write(async () => {
+            for (const local of localProgress) {
+              await local.markAsDeleted();
+            }
+          });
+        } else {
+          console.log('No remote progress found for user');
+        }
         return;
+      }
+
+      // Build set of remote episode IDs for quick lookup
+      const remoteEpisodeIds = new Set(remoteProgress.map(r => r.episode_id));
+
+      // Delete local records that don't exist remotely (were deleted)
+      const localToDelete = localProgress.filter(l => !remoteEpisodeIds.has(l.episodeId));
+      if (localToDelete.length > 0) {
+        console.log(`Deleting ${localToDelete.length} local record(s) not found in remote`);
+        await this.database.write(async () => {
+          for (const local of localToDelete) {
+            await local.markAsDeleted();
+          }
+        });
       }
 
       console.log(`Syncing ${remoteProgress.length} progress records from Supabase`);

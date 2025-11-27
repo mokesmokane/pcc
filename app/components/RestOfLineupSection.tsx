@@ -1,4 +1,3 @@
-import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
 import React from 'react';
 import {
   Image,
@@ -8,84 +7,93 @@ import {
   View,
 } from 'react-native';
 import type { WeeklyPodcast } from '../contexts/WeeklySelectionsContext';
+import { AvatarStack } from './AvatarStack';
+
+interface EpisodeProgressInfo {
+  progressPercentage: number;
+  completed: boolean;
+}
 
 interface RestOfLineupSectionProps {
   podcasts: WeeklyPodcast[];
   onJoinPress?: (podcast: WeeklyPodcast) => void;
   onUnlockWildCard?: () => void;
   isJoined: (podcastId: string) => boolean;
-  getProgressForEpisode?: (episodeId: string) => number;
+  getProgressForEpisode?: (episodeId: string) => EpisodeProgressInfo;
+  getMembersForEpisode?: (episodeId: string) => { id: string; avatar?: string }[];
 }
 
 export default function RestOfLineupSection({
   podcasts,
   onJoinPress,
-  onUnlockWildCard,
   isJoined,
   getProgressForEpisode,
+  getMembersForEpisode,
 }: RestOfLineupSectionProps) {
-  const [fontsLoaded] = useFonts({
-    PaytoneOne_400Regular,
-  });
-
-  if (!fontsLoaded || podcasts.length === 0) {
+  if (podcasts.length === 0) {
     return null;
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>The rest of the lineup</Text>
+      <Text style={styles.sectionTitle}>This week's other clubs</Text>
 
-        {podcasts.map((podcast, index) => {
-          const joined = isJoined(podcast.id);
-          const progress = joined ? (getProgressForEpisode?.(podcast.id) || 0) : 0;
-          return (
-            <React.Fragment key={podcast.id}>
-              <View style={styles.podcastItemContainer}>
-                <View style={styles.podcastItem}>
-                  <Image
-                    source={{ uri: podcast.image }}
-                    style={styles.podcastImage}
-                  />
-                  <View style={styles.podcastInfo}>
-                    <Text style={styles.podcastTitle} numberOfLines={1}>
-                      {podcast.title}
-                    </Text>
-                    <Text style={styles.podcastSubtitle} numberOfLines={1}>
-                      {podcast.source}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    style={[
-                      styles.joinButton,
-                      joined && styles.continueButton
-                    ]}
-                    onPress={() => onJoinPress?.(podcast)}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={[
-                      styles.joinButtonText,
-                      joined && styles.continueButtonText
-                    ]}>
-                      {joined ? 'Play' : 'Join'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-                {joined && (
-                  <View style={styles.progressBarContainer}>
-                    <View style={styles.progressBar}>
-                      <View style={[styles.progressFill, { width: `${progress}%` }]} />
-                    </View>
-                  </View>
-                )}
+      {podcasts.map((podcast) => {
+        const joined = isJoined(podcast.id);
+        const progressInfo = joined ? getProgressForEpisode?.(podcast.id) : null;
+        const isCompleted = progressInfo?.completed || false;
+        // Show 100% if completed, even when re-listening
+        const progress = isCompleted ? 100 : (progressInfo?.progressPercentage || 0);
+        const members = getMembersForEpisode?.(podcast.id) || [];
+        const memberCount = podcast.clubMembers || members.length;
+
+        return (
+          <TouchableOpacity
+            key={podcast.id}
+            style={styles.itemContainer}
+            onPress={() => onJoinPress?.(podcast)}
+            activeOpacity={0.7}
+          >
+            <Image source={{ uri: podcast.image }} style={styles.artwork} />
+
+            <View style={styles.content}>
+              <Text style={styles.podcastTitle} numberOfLines={2}>
+                {podcast.source}
+              </Text>
+              <Text style={styles.episodeTitle} numberOfLines={1}>
+                {podcast.title}
+              </Text>
+
+              <View style={styles.avatarStackContainer}>
+                <AvatarStack
+                  members={members}
+                  totalCount={memberCount}
+                  maxDisplay={5}
+                  size="small"
+                />
               </View>
-              {index < podcasts.length - 1 && (
-                <View style={styles.separator} />
-              )}
-            </React.Fragment>
-          );
-        })}
 
+              {/* Progress Bar - only show if progress > 0 */}
+              {progress > 0 && (
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressBackground}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { width: `${progress}%` },
+                        isCompleted && styles.progressFillCompleted
+                      ]}
+                    />
+                  </View>
+                  <Text style={[styles.progressText, isCompleted && styles.progressTextCompleted]}>
+                    {isCompleted ? '100% complete' : `${Math.round(progress)}% complete`}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }
@@ -95,94 +103,68 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 28,
-    fontFamily: 'PaytoneOne_400Regular',
-    color: '#E05F4E',
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#403837',
     marginBottom: 8,
   },
-  listContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-  },
-  podcastItemContainer: {
-    paddingVertical: 12,
-  },
-  podcastItem: {
+  itemContainer: {
     flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    marginVertical: 4,
+    borderRadius: 12,
     alignItems: 'center',
   },
-  podcastImage: {
-    width: 56,
-    height: 56,
+  artwork: {
+    width: 84,
+    height: 84,
     borderRadius: 8,
     marginRight: 12,
   },
-  podcastInfo: {
+  content: {
     flex: 1,
     justifyContent: 'center',
   },
   podcastTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#2C2826',
-    marginBottom: 4,
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#403837',
+    marginBottom: 2,
   },
-  podcastSubtitle: {
+  episodeTitle: {
     fontSize: 13,
-    color: '#6B5E57',
+    color: '#403837',
+    marginBottom: 6,
   },
-  joinButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: '#2C2826',
-    backgroundColor: '#FFFFFF',
+  avatarStackContainer: {
+    marginBottom: 6,
   },
-  joinButtonText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#2C2826',
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-  continueButton: {
-    backgroundColor: '#E05F4E',
-    borderColor: '#E05F4E',
-  },
-  continueButtonText: {
-    color: '#FFFFFF',
-  },
-  separator: {
-    height: 1,
-    backgroundColor: 'rgba(44, 40, 38, 0.1)',
-  },
-  progressBarContainer: {
-    marginTop: 8,
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: '#F0EDE9',
-    borderRadius: 2,
+  progressBackground: {
+    width: 80,
+    height: 6,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     backgroundColor: '#E05F4E',
-    borderRadius: 2,
+    borderRadius: 3,
   },
-  unlockButton: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#2C2826',
+  progressFillCompleted: {
+    backgroundColor: '#4CAF50',
   },
-  unlockButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#2C2826',
+  progressText: {
+    fontSize: 11,
+    color: '#403837',
+  },
+  progressTextCompleted: {
+    color: '#4CAF50',
   },
 });

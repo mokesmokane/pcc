@@ -58,6 +58,12 @@ export const styles = StyleSheet.create({
     sectionWrapper: {
       marginBottom: 12,
     },
+    sectionHeading: {
+      fontSize: 12,
+      fontWeight: '600',
+      color: '#403837',
+      marginBottom: 8,
+    },
     headerContainer: {
       paddingBottom: 16,
     },

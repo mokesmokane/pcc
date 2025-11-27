@@ -10,7 +10,9 @@ interface Meetup {
   meetup_time: string;
   venue: string;
   address: string;
-  max_attendees: number;
+  spaces: number;
+  attendee_count: number;
+  spots_left: number;
   attendees?: Array<{ user_id: string; avatar_url?: string; username?: string }>;
 }
 
@@ -91,7 +93,7 @@ export function MeetupsList({
       <MeetupDetailsModal
         visible={modalVisible}
         onClose={handleCloseModal}
-        meetup={selectedMeetup}
+        meetup={selectedMeetup ? { ...selectedMeetup, attendees: selectedMeetup.attendees || [] } : null}
         userStatus={selectedMeetup ? userStatuses.get(selectedMeetup.id) : null}
         onJoin={selectedMeetup && onJoin ? () => {
           onJoin(selectedMeetup.id);
@@ -106,8 +108,7 @@ export function MeetupsList({
 
 const styles = StyleSheet.create({
   meetupItemContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 8,
   },
   divider: {
     height: 1,

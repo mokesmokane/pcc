@@ -27,11 +27,11 @@ export function MiniPlayer({
   onPress,
   onSkipBackward
 }: MiniPlayerProps) {
-  // Calculate time remaining
-  const timeRemaining = duration - position;
+  // Calculate time remaining (ensure non-negative values)
+  const timeRemaining = Math.max(0, duration - position);
   const minutesLeft = Math.floor(timeRemaining / 60);
   const secondsLeft = Math.floor(timeRemaining % 60);
-  const timeRemainingText = duration > 0 ? `${minutesLeft}m ${secondsLeft}s left` : '';
+  const timeRemainingText = duration > 0 && timeRemaining >= 0 ? `${minutesLeft}m ${secondsLeft}s left` : '';
   return (
     <View style={styles.container}>
       <TouchableOpacity

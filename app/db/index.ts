@@ -18,6 +18,7 @@ import Notification from '../data/models/notification.model';
 import DiscussionQuestion from '../data/models/discussion-question.model';
 import DiscussionOption from '../data/models/discussion-option.model';
 import UserDiscussionResponse from '../data/models/user-discussion-response.model';
+import ConversationStarter from '../data/models/conversation-starter.model';
 
 const adapter = new SQLiteAdapter({
   schema,
@@ -48,6 +49,7 @@ const database = new Database({
     DiscussionQuestion,
     DiscussionOption,
     UserDiscussionResponse,
+    ConversationStarter,
   ],
 });
 

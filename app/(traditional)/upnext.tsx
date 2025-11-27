@@ -61,7 +61,7 @@ export default function UpNextScreen() {
     }
   };
 
-  const renderTrack = ({ item }: { item: typeof tracks[number]; index: number }) => {
+  const renderTrack = ({ item, index }: { item: typeof tracks[number]; index: number }) => {
     const isCurrentTrack = currentTrack?.id === item.id;
     const artwork = item.artwork || item.image;
     const episodeTitle = item.artist || item.source || item.episode;

@@ -9,6 +9,12 @@ import { useDatabase } from '../contexts/DatabaseContext';
 import { useAuth } from '../contexts/AuthContext';
 import { WeeklySelectionRepository } from '../data/repositories/weekly-selection.repository';
 import { ProgressRepository } from '../data/repositories/progress.repository';
+import { MembersRepository } from '../data/repositories/members.repository';
+
+interface MemberAvatar {
+  id: string;
+  avatar?: string;
+}
 
 interface HistoryEpisode {
   id: string;
@@ -17,6 +23,7 @@ interface HistoryEpisode {
   source: string;
   artwork: string;
   peopleInClub: number;
+  members: MemberAvatar[];
   progress: number;
   audioUrl: string;
   description: string;
@@ -48,6 +55,7 @@ export default function HistoryScreen() {
       try {
         const weeklySelectionRepo = new WeeklySelectionRepository(database);
         const progressRepo = new ProgressRepository(database);
+        const membersRepo = new MembersRepository(database);
 
         // Fetch all user weekly choices
         const choices = await weeklySelectionRepo.getAllUserWeeklyChoices(user.id);
@@ -64,6 +72,13 @@ export default function HistoryScreen() {
             // Get member count for this episode
             const memberCount = await weeklySelectionRepo.getEpisodeMemberCount(choice.episodeId);
 
+            // Get members for avatar stack
+            const episodeMembers = await membersRepo.getEpisodeMembers(choice.episodeId);
+            const memberAvatars: MemberAvatar[] = episodeMembers.map(m => ({
+              id: m.userId,
+              avatar: m.avatarUrl,
+            }));
+
             // Format month/year for grouping
             const date = new Date(choice.chosenAt);
             const monthYear = date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
@@ -75,6 +90,7 @@ export default function HistoryScreen() {
               source: choice.podcastTitle || 'Unknown Podcast',
               artwork: choice.artworkUrl || 'https://via.placeholder.com/150',
               peopleInClub: memberCount,
+              members: memberAvatars,
               progress: Math.round(progressPercentage),
               audioUrl: choice.audioUrl || '',
               description: choice.description || '',
@@ -179,6 +195,7 @@ export default function HistoryScreen() {
                     source={episode.source}
                     artwork={episode.artwork}
                     peopleInClub={episode.peopleInClub}
+                    members={episode.members}
                     progress={episode.progress}
                     onPress={() => handleEpisodePress(episode)}
                   />

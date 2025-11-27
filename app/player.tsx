@@ -21,6 +21,7 @@ import { TranscriptSection } from './components/player/TranscriptSection';
 import { TranscriptSheet } from './components/player/TranscriptSheet';
 import { useAudioPlayer } from './stores/audioStore.hooks';
 import { useComments } from './contexts/CommentsContext';
+import { useFlushProgressSync } from './hooks/queries/usePodcastMetadata';
 import { downloadService } from './services/downloadService';
 import InPersonClubSection from './components/InPersonClubSection';
 import PoddleboxSection from './components/PoddleboxSection';
@@ -150,6 +151,15 @@ export default function PlayerScreen() {
     playNow,
   } = useAudioPlayer();
   const { submitComment, getReplies, addReaction } = useComments();
+  const flushProgress = useFlushProgressSync();
+
+  // Flush progress to Supabase when player unmounts
+  useEffect(() => {
+    return () => {
+      console.log('📤 Player unmounting, flushing progress...');
+      flushProgress.mutate();
+    };
+  }, []);
 
   const [showSleepTimer, setShowSleepTimer] = useState(false);
   const [showPlaybackRate, setShowPlaybackRate] = useState(false);
@@ -288,6 +298,7 @@ export default function PlayerScreen() {
         artwork_url: params.trackArtwork as string,
         audio_url: params.trackAudioUrl as string,
         description: params.trackDescription as string,
+        duration: previewDuration,
       }, previewPosition);
     } else {
       // Normal play/pause toggle for current track

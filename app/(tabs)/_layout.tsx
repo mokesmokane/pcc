@@ -7,9 +7,9 @@ import { MiniPlayer } from '../components/player/MiniPlayer';
 import { ProfileMenu } from '../components/ProfileMenu';
 import { InviteFriendsModal } from '../components/InviteFriendsModal';
 import { NotificationsModal } from '../components/NotificationsModal';
-import { usePlaybackState, usePlaybackControls, useCurrentTrack } from '../stores/audioStore.hooks';
+import { useIsPlaying, usePlaybackControls, useCurrentTrack } from '../stores/audioStore.hooks';
 import { useAuth } from '../contexts/AuthContext';
-import { useProfile } from '../contexts/ProfileContext';
+import { useCurrentProfile } from '../hooks/queries/useProfile';
 import { useNotifications } from '../contexts/NotificationsContext';
 
 export default function TabLayout() {
@@ -19,9 +19,9 @@ export default function TabLayout() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const { user } = useAuth();
-  const { profile } = useProfile();
+  const { data: profile } = useCurrentProfile();
   const { unreadCount } = useNotifications();
-  const { isPlaying } = usePlaybackState();
+  const isPlaying = useIsPlaying();
   const { play, pause, skipBackward } = usePlaybackControls();
   const { currentTrack, position, duration } = useCurrentTrack();
 
@@ -34,8 +34,8 @@ export default function TabLayout() {
             backgroundColor: '#FFFFFF',
             borderTopWidth: 1,
             borderTopColor: '#E8E5E1',
-            height: 60 + insets.bottom,
-            paddingBottom: insets.bottom,
+            height: 70 + insets.bottom,
+            paddingBottom: insets.bottom + 8,
             paddingTop: 8,
           },
           tabBarActiveTintColor: '#E05F4E',
@@ -85,8 +85,11 @@ export default function TabLayout() {
           name="home"
           options={{
             title: 'Home',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="home-outline" size={size} color={color} />
+            tabBarIcon: ({ color, size, focused }) => (
+              <View style={styles.tabIconContainer}>
+                {focused && <View style={styles.activeIndicator} />}
+                <Ionicons name="home-outline" size={size} color={color} />
+              </View>
             ),
           }}
         />
@@ -94,8 +97,11 @@ export default function TabLayout() {
           name="events"
           options={{
             title: 'Events',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="calendar-outline" size={size} color={color} />
+            tabBarIcon: ({ color, size, focused }) => (
+              <View style={styles.tabIconContainer}>
+                {focused && <View style={styles.activeIndicator} />}
+                <Ionicons name="calendar-outline" size={size} color={color} />
+              </View>
             ),
           }}
         />
@@ -103,8 +109,11 @@ export default function TabLayout() {
           name="history"
           options={{
             title: 'History',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="time-outline" size={size} color={color} />
+            tabBarIcon: ({ color, size, focused }) => (
+              <View style={styles.tabIconContainer}>
+                {focused && <View style={styles.activeIndicator} />}
+                <Ionicons name="time-outline" size={size} color={color} />
+              </View>
             ),
           }}
         />
@@ -112,7 +121,7 @@ export default function TabLayout() {
 
       {/* MiniPlayer - positioned above tab bar */}
       {currentTrack && (
-        <View style={[styles.miniPlayerContainer, { bottom: 60 + insets.bottom}]}>
+        <View style={[styles.miniPlayerContainer, { bottom: 70 + insets.bottom}]}>
           <MiniPlayer
             title={currentTrack.title}
             artist={currentTrack.artist}
@@ -175,6 +184,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingTop: 12
+  },
+  tabIconContainer: {
+    alignItems: 'center',
+  },
+  activeIndicator: {
+    width: 24,
+    height: 4,
+    backgroundColor: '#E05F4E',
+    borderRadius: 2,
+    marginBottom: 4,
+    position: 'absolute',
+    top: -10,
   },
   miniPlayerContainer: {
     position: 'absolute',

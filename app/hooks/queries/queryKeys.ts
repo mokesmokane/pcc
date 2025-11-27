@@ -45,10 +45,12 @@ export const queryKeys = {
       [...queryKeys.podcastMetadata.all, 'stats', userId] as const,
   },
 
-  // Add other feature query keys here as needed
-  // Example:
-  // comments: {
-  //   all: ['comments'] as const,
-  //   byEpisode: (episodeId: string) => [...queryKeys.comments.all, 'episode', episodeId] as const,
-  // },
+  // Conversation Starters
+  conversationStarters: {
+    all: ['conversationStarters'] as const,
+    list: (episodeId: string) =>
+      [...queryKeys.conversationStarters.all, 'list', episodeId] as const,
+    comments: (starterId: string) =>
+      [...queryKeys.conversationStarters.all, 'comments', starterId] as const,
+  },
 };

@@ -13,6 +13,7 @@ export interface WeeklyPodcast {
   clubMembers: number;
   progress: number;
   duration: string;
+  durationSeconds: number;
   episode: string;
   image?: string;
   audioUrl?: string;
@@ -67,6 +68,7 @@ export const WeeklySelectionsProvider: React.FC<WeeklySelectionsProviderProps> =
         clubMembers: 0, // Will be updated with getEpisodeMemberCount
         progress: 0,
         duration: formatDuration(selection.duration || 0),
+        durationSeconds: selection.duration || 0,
         episode: selection.episodeTitle || 'Unknown Episode',
         image: selection.artworkUrl || undefined,
         audioUrl: selection.audioUrl,
@@ -165,11 +167,20 @@ export const WeeklySelectionsProvider: React.FC<WeeklySelectionsProviderProps> =
     try {
       const success = await weeklySelectionRepository.saveUserWeeklyChoice(user.id, episodeId);
       if (success) {
-        setUserChoice(selections.get(episodeId)||null);
+        const selectedPodcast = selections.get(episodeId) || null;
+        setUserChoice(selectedPodcast);
+
+        // Add to userChoices if not already present
+        if (selectedPodcast) {
+          setUserChoices(prev => {
+            if (prev.some(p => p.id === episodeId)) return prev;
+            return [selectedPodcast, ...prev];
+          });
+        }
 
         // Update member count for this episode
         const updatedSelections = await Promise.all(
-          Array.from(selections.entries()).map(async ([id, podcast]) => {
+          Array.from(selections.entries()).map(async ([, podcast]) => {
             if (podcast.id === episodeId) {
               const count = await weeklySelectionRepository.getEpisodeMemberCount(podcast.id);
               return { ...podcast, clubMembers: count };

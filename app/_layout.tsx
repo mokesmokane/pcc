@@ -6,7 +6,6 @@ import { DatabaseProvider } from './contexts/DatabaseContext';
 import { CommentsProvider } from './contexts/CommentsContext';
 import { WeeklySelectionsProvider } from './contexts/WeeklySelectionsContext';
 import { useEffect, useState } from 'react';
-import { playbackService } from './services/playback/playback.service';
 import * as Font from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { PaytoneOne_400Regular } from '@expo-google-fonts/paytone-one';
@@ -20,10 +19,10 @@ import { InitialSyncProvider } from './contexts/InitialSyncContext';
 import { SplashScreen as CustomSplashScreen } from './components/SplashScreen';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { errorTrackingService } from './services/errorTracking/errorTrackingService';
-import { useAudioStoreInitialize } from './stores/audioStore.hooks';
-import { useUpdateEpisodeProgress, useFlushProgressSync } from './hooks/queries/usePodcastMetadata';
-import { useDatabase } from './contexts/DatabaseContext';
-import { useAuth } from './contexts/AuthContext';
+import { useAudioStoreInitialize, useAudioStoreCleanup } from './stores/audioStore.hooks';
+import { useUpdateEpisodeProgress } from './hooks/queries/usePodcastMetadata';
+import { setupPlayer } from './services/audio/trackPlayerService';
+import TrackPlayer from 'react-native-track-player';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -33,47 +32,25 @@ const queryClient = new QueryClient();
 // Inner component that has access to progress hooks and router
 function AudioStoreInitializer() {
   const initializeAudioStore = useAudioStoreInitialize();
+  const cleanupAudioStore = useAudioStoreCleanup();
   const router = useRouter();
-  const { progressRepository } = useDatabase();
-  const { user } = useAuth();
   const updateProgressMutation = useUpdateEpisodeProgress();
-  const flushProgressMutation = useFlushProgressSync();
 
   useEffect(() => {
-    // Create wrapper functions for the audio store
-    const updateEpisodeProgress = async (episodeId: string, position: number, duration: number) => {
-      return updateProgressMutation.mutateAsync({ episodeId, position, duration });
+    // Initialize the audio store with callbacks
+    initializeAudioStore({
+      onProgressUpdate: (episodeId: string, position: number, duration: number) => {
+        updateProgressMutation.mutate({ episodeId, position, duration });
+      },
+      onEpisodeComplete: () => {
+        router.push('/episode-complete');
+      },
+    });
+
+    return () => {
+      cleanupAudioStore();
     };
-
-    const getEpisodeProgress = async (episodeId: string) => {
-      if (!user?.id) return null;
-      const progress = await progressRepository.getProgress(user.id, episodeId);
-      if (!progress) return null;
-
-      return {
-        episodeId: progress.episodeId,
-        currentPosition: progress.currentPosition,
-        totalDuration: progress.totalDuration,
-        completed: progress.completed,
-        lastPlayedAt: progress.lastPlayedAt,
-        progressPercentage: progress.totalDuration > 0
-          ? Math.min(100, Math.round((progress.currentPosition / progress.totalDuration) * 100))
-          : 0,
-      };
-    };
-
-    const flushProgressSync = async () => {
-      return flushProgressMutation.mutateAsync();
-    };
-
-    // Initialize the audio store with dependencies
-    initializeAudioStore(
-      updateEpisodeProgress,
-      getEpisodeProgress,
-      flushProgressSync,
-      () => router.push('/episode-complete')
-    );
-  }, [initializeAudioStore, updateProgressMutation, flushProgressMutation, progressRepository, user?.id, router]);
+  }, [initializeAudioStore, cleanupAudioStore, updateProgressMutation, router]);
 
   return null;
 }
@@ -102,14 +79,14 @@ export default function RootLayout() {
 
     loadFonts();
 
-    // Initialize playback service
-    playbackService.initialize().catch(console.error);
+    // Initialize Track Player
+    setupPlayer().catch(console.error);
 
     // Initialize error tracking service
     errorTrackingService.initialize().catch(console.error);
 
     return () => {
-      playbackService.destroy().catch(console.error);
+      TrackPlayer.reset().catch(console.error);
       errorTrackingService.stopBackgroundSync();
     };
   }, []);
@@ -151,6 +128,7 @@ export default function RootLayout() {
                                   <Stack.Screen name="success" options={{ headerShown: false }} />
                                   <Stack.Screen name="episode-complete" options={{ headerShown: false }} />
                                   <Stack.Screen name="pick-another" options={{ headerShown: false }} />
+                                  <Stack.Screen name="have-your-say" options={{ headerShown: false }} />
                                 </Stack>
                             </WeeklySelectionsProvider>
                           </TranscriptProvider>

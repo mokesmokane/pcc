@@ -15,9 +15,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQueue, useCurrentTrackOnly } from '../../stores/audioStore.hooks';
 import { PodcastDetailHeader } from '../../components/PodcastDetailHeader';
 import { downloadService } from '../../services/download/download.service';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const DOWNLOADS_KEY = '@downloaded_episodes';
 
 interface Episode {
   id: string;
@@ -266,6 +263,8 @@ export default function PodcastDetailScreen() {
         id: episode.id,
         title: episode.title,
         audioUrl: episode.audioUrl,
+        podcastTitle: podcastInfo.author || podcastInfo.title,
+        artwork: podcastInfo.artwork,
       });
 
       // Update episode download status
@@ -275,41 +274,12 @@ export default function PodcastDetailScreen() {
         )
       );
 
-      // Save download metadata
-      await saveDownloadMetadata(episode);
-
       Alert.alert('Download Started', `Downloading "${episode.title}"`);
 
       // Refresh status after a delay
       setTimeout(checkDownloadStatus, 2000);
     } catch (_error) {
       Alert.alert('Download Failed', 'Could not start download');
-    }
-  };
-
-  const saveDownloadMetadata = async (episode: Episode) => {
-    try {
-      const stored = await AsyncStorage.getItem(DOWNLOADS_KEY);
-      const downloads = stored ? JSON.parse(stored) : [];
-
-      // Check if already saved
-      const exists = downloads.some((d: { id: string }) => d.id === episode.id);
-      if (exists) return;
-
-      const newDownload = {
-        id: episode.id,
-        title: episode.title,
-        podcastTitle: podcastInfo.author || podcastInfo.title,
-        artwork: podcastInfo.artwork,
-        audioUrl: episode.audioUrl,
-        localPath: await downloadService.getDownloadedFilePath(episode.id),
-        downloadedAt: Date.now(),
-      };
-
-      downloads.push(newDownload);
-      await AsyncStorage.setItem(DOWNLOADS_KEY, JSON.stringify(downloads));
-    } catch (_error) {
-      // Silently fail - not critical
     }
   };
 

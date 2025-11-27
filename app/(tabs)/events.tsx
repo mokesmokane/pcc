@@ -53,6 +53,7 @@ export default function EventsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Meetup Cards */}
+        <Text style={styles.sectionHeading}>Upcoming</Text>
         <MeetupsList
           meetups={meetups}
           loading={loading}
@@ -63,20 +64,20 @@ export default function EventsScreen() {
           emptyMessage="No upcoming meetups"
           emptySubtext="Be the first to create one!"
         />
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            No meetup near you? 😊 Be a community
-          </Text>
-          <Text style={styles.footerText}>
-            hero - start one!
-          </Text>
-          <TouchableOpacity style={styles.addButton}>
-            <Text style={styles.addButtonText}>Add a meetup</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
+
+      {/* Footer - fixed at bottom */}
+      <View style={styles.footer}>
+        <View style={styles.speechBubble}>
+          <Text style={styles.footerText}>
+            No meetup near you? 😊 Be a community hero - start one!
+          </Text>
+          <View style={styles.speechBubbleTail} />
+        </View>
+        <TouchableOpacity style={styles.addButton}>
+          <Text style={styles.addButtonText}>Add a meetup</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }

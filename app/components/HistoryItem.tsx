@@ -1,6 +1,6 @@
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { AvatarStack } from './AvatarStack';
 
 interface HistoryItemProps {
   podcastTitle: string;
@@ -8,6 +8,7 @@ interface HistoryItemProps {
   source: string;
   artwork: string;
   peopleInClub: number;
+  members?: { id: string; avatar?: string }[];
   progress: number;
   onPress: () => void;
 }
@@ -15,9 +16,9 @@ interface HistoryItemProps {
 export function HistoryItem({
   podcastTitle,
   episodeTitle,
-  _source,
   artwork,
   peopleInClub,
+  members,
   progress,
   onPress
 }: HistoryItemProps) {
@@ -35,26 +36,32 @@ export function HistoryItem({
           {episodeTitle}
         </Text>
 
-        <View style={styles.metaContainer}>
-          <View style={styles.metaItem}>
-            <Text style={styles.metaText}>
-              🔥 {peopleInClub} {peopleInClub === 1 ? 'person' : 'people'} in the club
-            </Text>
-          </View>
+        <View style={styles.avatarStackContainer}>
+          <AvatarStack
+            members={members || []}
+            totalCount={peopleInClub}
+            maxDisplay={5}
+            size="small"
+          />
         </View>
 
-        {/* Progress Bar */}
-        <View style={styles.progressContainer}>
-          <View style={styles.progressBackground}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${progress}%` }
-              ]}
-            />
+        {/* Progress Bar - only show if progress > 0 */}
+        {progress > 0 && (
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBackground}>
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${progress}%` },
+                  isCompleted && styles.progressFillCompleted
+                ]}
+              />
+            </View>
+            <Text style={[styles.progressText, isCompleted && styles.progressTextCompleted]}>
+              {isCompleted ? '100% complete' : `${Math.round(progress)}% complete`}
+            </Text>
           </View>
-          <Text style={styles.progressText}>{isCompleted ? '100% complete' : `${Math.round(progress)}% complete`}</Text>
-        </View>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -63,7 +70,7 @@ export function HistoryItem({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: '#E6DED3',
+    backgroundColor: '#FFFFFF',
     padding: 12,
     marginHorizontal: 16,
     marginVertical: 4,
@@ -90,19 +97,8 @@ const styles = StyleSheet.create({
     color: '#403837',
     marginBottom: 6,
   },
-  metaContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  avatarStackContainer: {
     marginBottom: 6,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  metaText: {
-    fontSize: 12,
-    color: '#403837',
-    marginLeft: 4,
   },
   progressContainer: {
     flexDirection: 'row',
@@ -121,8 +117,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#E05F4E',
     borderRadius: 3,
   },
+  progressFillCompleted: {
+    backgroundColor: '#4CAF50',
+  },
   progressText: {
     fontSize: 11,
     color: '#403837',
+  },
+  progressTextCompleted: {
+    color: '#4CAF50',
   },
 });

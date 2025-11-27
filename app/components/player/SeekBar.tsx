@@ -42,9 +42,9 @@ export const SeekBar: React.FC<SeekBarProps> = ({
   const { position: audioPosition, duration: audioDuration } = useCurrentTrack();
   const { seekTo } = usePlaybackControls();
 
-  // Use override values if provided, otherwise fall back to audio context
-  const position = overridePosition !== undefined ? overridePosition : audioPosition;
-  const duration = overrideDuration !== undefined ? overrideDuration : audioDuration;
+  // Use override values if provided and valid, otherwise fall back to audio context
+  const position = (overridePosition !== undefined && overridePosition >= 0) ? overridePosition : audioPosition;
+  const duration = (overrideDuration && overrideDuration > 0) ? overrideDuration : audioDuration;
 
   // Shared values for UI thread animations
   const containerWidth = useSharedValue(0);
@@ -159,14 +159,22 @@ export const SeekBar: React.FC<SeekBarProps> = ({
 
   // Animated styles
   const progressFillStyle = useAnimatedStyle(() => {
+    // Clamp width to container width to prevent overflow
+    const clampedWidth = containerWidth.value > 0
+      ? Math.min(Math.max(0, progressPosition.value), containerWidth.value)
+      : 0;
     return {
-      width: progressPosition.value,
+      width: clampedWidth,
     };
   });
 
   const thumbContainerStyle = useAnimatedStyle(() => {
+    // Clamp thumb position to container width to prevent overflow
+    const clampedX = containerWidth.value > 0
+      ? Math.min(Math.max(0, progressPosition.value), containerWidth.value)
+      : 0;
     return {
-      transform: [{ translateX: progressPosition.value }],
+      transform: [{ translateX: clampedX }],
     };
   });
 
