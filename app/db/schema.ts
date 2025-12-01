@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 7, // Added conversation_starters table
+  version: 10, // Added location and bio to profiles
   tables: [
     tableSchema({
       name: 'user_episode_progress',
@@ -54,6 +54,27 @@ export const schema = appSchema({
       ],
     }),
     tableSchema({
+      name: 'weekly_category_selections',
+      columns: [
+        { name: 'week_start', type: 'string', isIndexed: true },
+        { name: 'category', type: 'string', isIndexed: true },
+        { name: 'episode_id', type: 'string', isIndexed: true },
+        // Denormalized episode data (same pattern as weekly_selections)
+        { name: 'episode_title', type: 'string' },
+        { name: 'podcast_title', type: 'string' },
+        { name: 'episode_description', type: 'string' },
+        { name: 'audio_url', type: 'string' },
+        { name: 'artwork_url', type: 'string', isOptional: true },
+        { name: 'duration', type: 'number' },
+        { name: 'published_at', type: 'string' },
+        // Timestamps and sync
+        { name: 'created_at', type: 'number' },
+        { name: 'updated_at', type: 'number' },
+        { name: 'synced_at', type: 'number', isOptional: true },
+        { name: 'needs_sync', type: 'boolean' },
+      ],
+    }),
+    tableSchema({
       name: 'comments',
       columns: [
         { name: 'episode_id', type: 'string', isIndexed: true },
@@ -90,6 +111,12 @@ export const schema = appSchema({
         { name: 'avatar_url', type: 'string', isOptional: true },
         { name: 'first_name', type: 'string', isOptional: true },
         { name: 'last_name', type: 'string', isOptional: true },
+        { name: 'location', type: 'string', isOptional: true },
+        { name: 'bio', type: 'string', isOptional: true },
+        // Onboarding preferences
+        { name: 'struggles', type: 'string', isOptional: true }, // JSON array as string
+        { name: 'interests', type: 'string', isOptional: true }, // JSON array as string
+        { name: 'onboarding_completed', type: 'boolean', isOptional: true },
         { name: 'created_at', type: 'number' },
         { name: 'updated_at', type: 'number' },
         { name: 'synced_at', type: 'number', isOptional: true },

@@ -26,7 +26,25 @@ export default function PodcastDetailsScreen() {
     PaytoneOne_400Regular,
   });
 
-  const { id } = params;
+  const { id, title, source, clubMembers, category, image, audioUrl, description } = params;
+
+  // Get podcast from selections, or build from params (for wildcard episodes)
+  const podcastFromSelections = selections.get(id as string);
+  const podcast = podcastFromSelections || {
+    id: id as string,
+    title: title as string || 'Unknown Podcast',
+    source: source as string || 'Unknown Episode',
+    clubMembers: parseInt(clubMembers as string || '0', 10),
+    category: category as string || 'Podcast',
+    categoryLabel: category as string || 'Podcast',
+    image: image as string || undefined,
+    audioUrl: audioUrl as string || '',
+    description: description as string || '',
+    progress: 0,
+    duration: '',
+    durationSeconds: 0,
+    episode: source as string || '',
+  };
 
   const handleChoose = async () => {
     if (!user) {
@@ -35,8 +53,8 @@ export default function PodcastDetailsScreen() {
     }
 
     try {
-      // Save user's choice using the context
-      const success = await selectEpisode(id as string);
+      // Save user's choice using the context (pass podcast for wildcards not in selections)
+      const success = await selectEpisode(id as string, podcast);
 
       if (success) {
         // Save as the current podcast so it shows first on home screen
@@ -50,8 +68,7 @@ export default function PodcastDetailsScreen() {
       console.error('Error recording choice:', error);
     }
   };
-  const podcast = selections.get(id as string);
-  return podcast ? (
+  return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Podcast Image */}
@@ -112,5 +129,5 @@ export default function PodcastDetailsScreen() {
         </Button>
       </View>
     </SafeAreaView>
-  ) : null;
+  );
 }

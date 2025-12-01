@@ -53,11 +53,11 @@ export default function SuccessScreen() {
     console.log('Success screen mounted, starting 5 second timer');
     let isMounted = true;
 
-    // Navigate to home screen after 5 seconds to enjoy the confetti animation
+    // Navigate to onboarding after 5 seconds to enjoy the confetti animation
     const timer = setTimeout(() => {
       if (isMounted) {
-        console.log('Success screen timer completed, navigating to home');
-        router.replace('/home');
+        console.log('Success screen timer completed, navigating to onboarding');
+        router.replace('/onboarding-struggles');
       }
     }, 5000);
 

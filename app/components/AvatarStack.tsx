@@ -1,7 +1,13 @@
 import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
-// Stock placeholder avatars
+// Generate DiceBear avatar URL for real members without an avatar
+const getDiceBearAvatar = (seed: string) => {
+  const encodedSeed = encodeURIComponent(seed);
+  return `https://api.dicebear.com/7.x/avataaars/png?seed=${encodedSeed}&backgroundColor=f4f1ed`;
+};
+
+// Stock placeholder photos (only used when there are NO real members)
 const PLACEHOLDER_AVATARS = [
   'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=face',
   'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=face',
@@ -12,7 +18,7 @@ const PLACEHOLDER_AVATARS = [
 ];
 
 interface AvatarStackProps {
-  members: { id: string; avatar?: string }[];
+  members: { id: string; avatar?: string; name?: string }[];
   totalCount?: number;
   maxDisplay?: number;
   size?: 'small' | 'medium' | 'large';
@@ -26,7 +32,7 @@ export function AvatarStack({
   size = 'small',
   showPlaceholders = true,
 }: AvatarStackProps) {
-  // Use placeholders if no members and showPlaceholders is true
+  // Use stock photo placeholders only when there are NO real members
   const displayMembers = members.length > 0
     ? members.slice(0, maxDisplay)
     : showPlaceholders
@@ -56,7 +62,7 @@ export function AvatarStack({
       {displayMembers.map((member, index) => (
         <Image
           key={member.id}
-          source={{ uri: member.avatar }}
+          source={{ uri: member.avatar || getDiceBearAvatar(member.id) }}
           style={[avatarStyle, { zIndex: maxDisplay - index }]}
         />
       ))}

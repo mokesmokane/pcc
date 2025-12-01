@@ -21,6 +21,10 @@ export class ProfileRepository extends BaseRepository<Profile> {
       avatar_url: remoteData.avatar_url,
       first_name: remoteData.first_name,
       last_name: remoteData.last_name,
+      // Onboarding fields - convert arrays to JSON strings
+      struggles: remoteData.struggles ? JSON.stringify(remoteData.struggles) : null,
+      interests: remoteData.interests ? JSON.stringify(remoteData.interests) : null,
+      onboarding_completed: remoteData.onboarding_completed ?? false,
       synced_at: Date.now(),
       needs_sync: false,
     };
@@ -91,6 +95,99 @@ export class ProfileRepository extends BaseRepository<Profile> {
       this.syncProfile(userId).catch(console.error);
 
       return updated;
+    }
+  }
+
+  /**
+   * Save onboarding preferences (struggles and interests)
+   */
+  async saveOnboardingPreferences(
+    userId: string,
+    struggles: string[],
+    interests: string[]
+  ): Promise<Profile | null> {
+    const profile = await this.findByUserId(userId);
+
+    const updateData = {
+      struggles: JSON.stringify(struggles),
+      interests: JSON.stringify(interests),
+      needs_sync: true,
+    };
+
+    let result: Profile | null = null;
+
+    if (profile) {
+      result = await this.update(profile.id, updateData as any);
+    } else {
+      result = await this.create({
+        user_id: userId,
+        ...updateData,
+      } as any);
+    }
+
+    // Sync to remote in background
+    this.syncOnboardingPreferences(userId, struggles, interests).catch(console.error);
+
+    return result;
+  }
+
+  /**
+   * Mark onboarding as complete
+   */
+  async markOnboardingComplete(userId: string): Promise<void> {
+    const profile = await this.findByUserId(userId);
+
+    if (profile) {
+      await this.update(profile.id, {
+        onboarding_completed: true,
+        needs_sync: true,
+      } as any);
+    }
+
+    // Sync to remote
+    try {
+      await supabase
+        .from('profiles')
+        .update({
+          onboarding_completed: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userId);
+    } catch (error) {
+      console.error('Failed to sync onboarding completion:', error);
+    }
+  }
+
+  /**
+   * Sync onboarding preferences to Supabase
+   */
+  private async syncOnboardingPreferences(
+    userId: string,
+    struggles: string[],
+    interests: string[]
+  ): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          struggles,
+          interests,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', userId);
+
+      if (error) throw error;
+
+      // Mark as synced locally
+      const profile = await this.findByUserId(userId);
+      if (profile) {
+        await this.update(profile.id, {
+          needs_sync: false,
+          synced_at: Date.now(),
+        } as any);
+      }
+    } catch (error) {
+      console.error('Failed to sync onboarding preferences:', error);
     }
   }
 

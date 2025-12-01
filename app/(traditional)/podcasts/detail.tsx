@@ -3,12 +3,12 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -371,6 +371,7 @@ export default function PodcastDetailScreen() {
         <Image
           source={{ uri: podcastInfo.artwork }}
           style={styles.podcastArtwork}
+          contentFit="cover"
         />
       ) : (
         <View style={styles.podcastArtworkPlaceholder}>

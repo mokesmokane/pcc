@@ -8,7 +8,7 @@ interface HistoryItemProps {
   source: string;
   artwork: string;
   peopleInClub: number;
-  members?: { id: string; avatar?: string }[];
+  members?: { id: string; avatar?: string; name?: string }[];
   progress: number;
   onPress: () => void;
 }

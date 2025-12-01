@@ -15,105 +15,168 @@ export const styles = StyleSheet.create({
     color: '#8B8680',
     marginTop: 12,
   },
-  keyboardView: {
-    flex: 1,
+
+  // Header section (coral background)
+  headerSection: {
+    backgroundColor: '#E05F4E',
+    paddingTop: 8,
+    paddingBottom: 70, // Extra space for avatar overlap
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 100, // Extra space for MiniPlayer
-  },
-  titleSection: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    paddingTop: 10,
-    backgroundColor: '#F4F1ED',
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: '400',
-    color: '#E05F4E',
-    lineHeight: 38,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#403837',
-    marginTop: 8,
-  },
-  avatarSection: {
+  headerNav: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 24,
-    paddingBottom: 16,
-    backgroundColor: '#F4F1ED',
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  backButton: {
+    padding: 8,
+  },
+
+  // Avatar section (overlaps header)
+  avatarSection: {
+    alignItems: 'flex-start',
+    paddingLeft: 24,
+    marginTop: -60, // Pull up to overlap header
+    marginBottom: 16,
+    zIndex: 10,
   },
   avatarContainer: {
-    marginBottom: 12,
+    position: 'relative',
   },
   avatar: {
-    width: 240,
-    height: 240,
-    borderRadius: 120,
-    backgroundColor: '#F8F6F3',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 4,
+    borderColor: '#7DD3C0', // Teal border
   },
   avatarPlaceholder: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     backgroundColor: '#F8F6F3',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#E8E5E1',
+    borderWidth: 4,
+    borderColor: '#7DD3C0',
   },
   avatarText: {
-    fontSize: 48,
+    fontSize: 36,
     fontWeight: '600',
     color: '#E05F4E',
   },
-  editPhotoButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 12,
-  },
-  editPhotoText: {
-    fontSize: 16,
-    color: '#E05F4E',
-    fontWeight: '600',
-    textDecorationLine: 'underline',
-  },
-  avatarButton: {
-    position: 'relative',
-  },
-  cameraIconContainer: {
+  editAvatarButton: {
     position: 'absolute',
     bottom: 0,
-    right: -4,
+    right: 0,
     backgroundColor: '#E05F4E',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
-  changePhotoText: {
-    fontSize: 13,
+
+  // Content section
+  contentSection: {
+    flex: 1,
+    paddingHorizontal: 24,
+    alignItems: 'flex-start',
+  },
+
+  // Name
+  nameText: {
+    fontSize: 28,
+    color: '#E05F4E',
+    fontFamily: 'PaytoneOne_400Regular',
+    marginBottom: 8,
+  },
+
+  // Location
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  locationText: {
+    fontSize: 14,
+    color: '#403837',
+    marginLeft: 4,
+  },
+
+  // Bio section
+  sectionLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#403837',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  bioText: {
+    fontSize: 15,
+    color: '#403837',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  bioPlaceholder: {
+    fontSize: 15,
     color: '#8B8680',
-    marginTop: 12,
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  bioInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8E5E1',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#403837',
+    lineHeight: 22,
+    minHeight: 100,
+    textAlignVertical: 'top',
+    marginBottom: 24,
+  },
+
+  // Interests section
+  interestsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 24,
+  },
+  interestChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E8E5E1',
+  },
+  interestEmoji: {
+    fontSize: 14,
+    marginRight: 6,
+  },
+  interestText: {
+    fontSize: 14,
+    color: '#403837',
     fontWeight: '500',
   },
-  formSection: {
-    paddingHorizontal: 20,
-  },
+
+  // Form fields (for edit mode)
   inputGroup: {
     marginBottom: 20,
   },
   label: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#403837',
+    color: '#8B8680',
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -128,23 +191,28 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     color: '#403837',
   },
-  emailGroup: {
-    marginBottom: 20,
+  helperText: {
+    fontSize: 12,
+    color: '#8B8680',
+    marginTop: 6,
   },
-  emailText: {
+  readOnlyField: {
     backgroundColor: '#F8F6F3',
     borderWidth: 1,
     borderColor: '#E8E5E1',
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 12,
+  },
+  readOnlyText: {
     fontSize: 16,
     color: '#8B8680',
   },
+
+  // Buttons
   buttonContainer: {
     flexDirection: 'row',
     gap: 12,
-    paddingHorizontal: 20,
     marginTop: 32,
     marginBottom: 20,
   },
@@ -173,89 +241,22 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  saveButtonDisabled: {
-    backgroundColor: '#C4C1BB',
+
+  // Edit button
+  editButton: {
+    position: 'absolute',
+    top: 8,
+    right: 16,
+    padding: 8,
   },
 
-  // Header styles
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#F4F1ED',
-  },
-  closeButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 24,
-    color: '#E05F4E',
+  scrollView: {
     flex: 1,
   },
-  headerSpacer: {
-    width: 40,
+  scrollContent: {
+    paddingBottom: 100,
   },
-  backButton: {
-    padding: 4,
-  },
-  editIconContainer: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#E05F4E',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: '#F4F1ED',
-  },
-  form: {
-    paddingHorizontal: 20,
-  },
-  bioInput: {
-    minHeight: 100,
-    paddingTop: 12,
-  },
-  helperText: {
-    fontSize: 12,
-    color: '#8B8680',
-    marginTop: 6,
-  },
-  readOnlyField: {
-    backgroundColor: '#F8F6F3',
-    borderWidth: 1,
-    borderColor: '#E8E5E1',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  readOnlyText: {
-    fontSize: 16,
-    color: '#8B8680',
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#8B8680',
-    textAlign: 'center',
-  },
-  logoutButton: {
-    marginHorizontal: 20,
-    marginTop: 32,
-    marginBottom: 20,
-    paddingVertical: 16,
-    borderRadius: 28,
-    borderWidth: 1,
-    borderColor: '#E8E5E1',
-    backgroundColor: '#FFFFFF',
-    alignItems: 'center',
-  },
-  logoutButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#E05F4E',
+  keyboardView: {
+    flex: 1,
   },
 });

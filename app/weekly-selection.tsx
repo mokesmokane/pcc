@@ -1,186 +1,22 @@
 import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
-  Dimensions,
-  Easing,
   Image,
-  ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle, G, Path, Text as SvgText } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
 import { useWeeklySelections } from './contexts/WeeklySelectionsContext';
+import { useDatabase } from './contexts/DatabaseContext';
 import { CARD_WIDTH, styles } from './weekly-selection.styles';
 import type { WeeklyPodcast } from './contexts/WeeklySelectionsContext';
-
-const { width: _screenWidth } = Dimensions.get('window');
-
-// Embedded spinner wheel component
-const SpinnerWheel = () => {
-  const [isSpinning, setIsSpinning] = useState(false);
-  const [highlightedIndex, setHighlightedIndex] = useState<number | null>(null);
-  const rotationValue = useRef(new Animated.Value(0)).current;
-  const currentRotation = useRef(0);
-
-  const wheelPodcasts = [
-    "The Joe Rogan",
-    "Serial",
-    "This American...",
-    "Radiolab",
-    "Planet Money",
-    "Stuff You Sh...",
-    "The Daily",
-    "Conan O'Brie...",
-    "My Favorite",
-    "The Tim Ferr...",
-    "Fresh Air",
-    "Reply All",
-    "Criminal",
-    "99% Invisibl...",
-    "WTF with Mar...",
-    "The Moth",
-    "Science Vs",
-    "Hardcore His...",
-    "Song Explod...",
-    "Hidden Brain",
-  ];
-
-  const handleSpin = () => {
-    if (isSpinning) return;
-
-    setIsSpinning(true);
-    setHighlightedIndex(null);
-
-    // Generate random rotation
-    const spins = 8 + Math.random() * 4;
-    const finalRotation = spins * 360 + Math.random() * 360;
-
-    // Animate the wheel
-    Animated.timing(rotationValue, {
-      toValue: currentRotation.current + finalRotation,
-      duration: 5000,
-      easing: Easing.bezier(0.25, 0.46, 0.45, 0.94),
-      useNativeDriver: true,
-    }).start(() => {
-      currentRotation.current += finalRotation;
-      setIsSpinning(false);
-
-      // Calculate which segment is at the top
-      const totalRotation = currentRotation.current % 360;
-      const normalizedRotation = (360 - (totalRotation % 360) + 360) % 360;
-      const segmentSize = 360 / wheelPodcasts.length;
-      const segmentAtTop = Math.floor(normalizedRotation / segmentSize) % wheelPodcasts.length;
-
-      // Highlight the selected segment
-      setHighlightedIndex(segmentAtTop);
-    });
-  };
-
-  const AnimatedSvg = Animated.createAnimatedComponent(Svg);
-  const segmentAngle = 360 / wheelPodcasts.length;
-
-  return (
-    <TouchableOpacity onPress={handleSpin} style={{ width: 240, height: 240, position: 'relative' }}>
-      {/* Pointer at top pointing down */}
-      <View style={{
-        position: 'absolute',
-        top: 0,
-        left: 114,
-        width: 0,
-        height: 0,
-        borderLeftWidth: 6,
-        borderRightWidth: 6,
-        borderTopWidth: 12,
-        borderLeftColor: 'transparent',
-        borderRightColor: 'transparent',
-        borderTopColor: '#403837',
-        zIndex: 10,
-      }} />
-
-      <AnimatedSvg
-        width={240}
-        height={240}
-        viewBox="0 0 320 320"
-        style={{
-          transform: [{
-            rotate: rotationValue.interpolate({
-              inputRange: [0, 360],
-              outputRange: ['0deg', '360deg'],
-            })
-          }]
-        }}
-      >
-        {wheelPodcasts.map((podcast, index) => {
-          const startAngle = (index * segmentAngle - 90) * (Math.PI / 180);
-          const endAngle = ((index + 1) * segmentAngle - 90) * (Math.PI / 180);
-          const midAngle = (startAngle + endAngle) / 2;
-
-          const radius = 160;
-          const centerX = 160;
-          const centerY = 160;
-
-          const x1 = centerX + Math.cos(startAngle) * radius;
-          const y1 = centerY + Math.sin(startAngle) * radius;
-          const x2 = centerX + Math.cos(endAngle) * radius;
-          const y2 = centerY + Math.sin(endAngle) * radius;
-
-          const largeArcFlag = segmentAngle > 180 ? 1 : 0;
-
-          const pathData = [
-            `M ${centerX} ${centerY}`,
-            `L ${x1} ${y1}`,
-            `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
-            "Z",
-          ].join(" ");
-
-          const textRadius = radius * 0.7;
-          const textX = centerX + Math.cos(midAngle) * textRadius;
-          const textY = centerY + Math.sin(midAngle) * textRadius;
-          const textAngle = (midAngle * 180) / Math.PI;
-
-          return (
-            <G key={index}>
-              <Path
-                d={pathData}
-                fill={index === highlightedIndex ? "#E05F4E" : index % 2 === 0 ? "#e5e7eb" : "#9ca3af"}
-                stroke="#ffffff"
-                strokeWidth="1"
-              />
-              <SvgText
-                x={textX}
-                y={textY}
-                fill="black"
-                fontSize="10"
-                fontWeight="500"
-                textAnchor="middle"
-                alignmentBaseline="middle"
-                transform={`rotate(${textAngle > 90 && textAngle < 270 ? textAngle + 180 : textAngle}, ${textX}, ${textY})`}
-              >
-                {podcast}
-              </SvgText>
-            </G>
-          );
-        })}
-        <Circle cx="160" cy="160" r="40" fill="#403837" />
-        <SvgText
-          x="160"
-          y="165"
-          fill="white"
-          fontSize="20"
-          fontWeight="bold"
-          textAnchor="middle"
-        >
-          Spin
-        </SvgText>
-      </AnimatedSvg>
-    </TouchableOpacity>
-  );
-};
+import SpinnerWheel from './components/SpinnerWheel';
 
 // Star burst SVG component
 const StarBurst = ({ style }: { style?: object }) => (
@@ -197,14 +33,116 @@ export default function WeeklySelectionScreen() {
 
   const {
     selections,
-    userChoice
+    userChoice,
+    selectEpisode,
   } = useWeeklySelections();
+
+  const { weeklyCategorySelectionRepository } = useDatabase();
 
   const [fontsLoaded] = useFonts({
     PaytoneOne_400Regular,
   });
   const [currentIndex, setCurrentIndex] = useState(0);
-  
+  const [containerHeight, setContainerHeight] = useState(0);
+  const scrollX = useRef(new Animated.Value(0)).current;
+
+  // Wildcard state
+  const [wildcardEpisode, setWildcardEpisode] = useState<WeeklyPodcast | null>(null);
+  const [wildcardCategory, setWildcardCategory] = useState<string | null>(null);
+  const [loadingWildcard, setLoadingWildcard] = useState(false);
+  const cardFlipAnim = useRef(new Animated.Value(0)).current;
+
+  // Calculate snap offsets for smoother snapping
+  const snapInterval = CARD_WIDTH + 16;
+
+  // Decode HTML entities in text
+  const decodeHtmlEntities = (text: string): string => {
+    if (!text) return text;
+    return text
+      .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec))
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&apos;/g, "'")
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&rsquo;/g, "'")
+      .replace(/&lsquo;/g, "'")
+      .replace(/&rdquo;/g, '"')
+      .replace(/&ldquo;/g, '"')
+      .replace(/&mdash;/g, '—')
+      .replace(/&ndash;/g, '–')
+      .replace(/&hellip;/g, '…');
+  };
+
+  // Handle wildcard "Let's Go" - fetch the category episode
+  const handleWildcardLetsGo = async (genre: { label: string; icon: string }) => {
+    setLoadingWildcard(true);
+    setWildcardCategory(genre.label);
+
+    try {
+      // Sync and fetch the category selection
+      await weeklyCategorySelectionRepository.syncWithRemote();
+      const selection = await weeklyCategorySelectionRepository.getSelectionsByCategoryNormalized(genre.label);
+
+      if (selection) {
+        // Transform to WeeklyPodcast format (decode HTML entities in text fields)
+        const podcast: WeeklyPodcast = {
+          id: selection.episodeId,
+          category: genre.label,
+          categoryLabel: genre.label,
+          title: decodeHtmlEntities(selection.podcastTitle || 'Unknown Podcast'),
+          source: decodeHtmlEntities(selection.episodeTitle || 'Unknown Episode'),
+          clubMembers: 0,
+          progress: 0,
+          duration: formatDuration(selection.duration || 0),
+          durationSeconds: selection.duration || 0,
+          episode: decodeHtmlEntities(selection.episodeTitle || 'Unknown Episode'),
+          image: selection.artworkUrl || undefined,
+          audioUrl: selection.audioUrl,
+          description: decodeHtmlEntities(selection.episodeDescription || ''),
+        };
+
+        console.log('Setting wildcard episode:', podcast.title);
+        setWildcardEpisode(podcast);
+        // The podcast-details page uses route params as fallback for podcasts not in selections.
+
+        // Animate the card flip
+        Animated.spring(cardFlipAnim, {
+          toValue: 1,
+          friction: 8,
+          tension: 10,
+          useNativeDriver: true,
+        }).start();
+      } else {
+        console.log('No episode found for category:', genre.label);
+        // Reset loading state but keep spinner visible
+        alert(`No podcast found for ${genre.label}. Try another category!`);
+      }
+    } catch (error) {
+      console.error('Error fetching wildcard episode:', error);
+    } finally {
+      setLoadingWildcard(false);
+    }
+  };
+
+  // Format duration helper
+  const formatDuration = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    }
+    return `${minutes}m`;
+  };
+
+  // Handle respin - reset wildcard state to show spinner again
+  const handleRespin = () => {
+    setWildcardEpisode(null);
+    setWildcardCategory(null);
+    cardFlipAnim.setValue(0);
+  };
 
   // Add spinner card to selections
   const podcastDataWithSpinner = useMemo(() => {
@@ -220,6 +158,7 @@ export default function WeeklySelectionScreen() {
       clubMembers: 0,
       progress: 0,
       duration: '',
+      durationSeconds: 0,
       episode: '',
       image: undefined,
       audioUrl: '',
@@ -228,7 +167,6 @@ export default function WeeklySelectionScreen() {
 
     return dataWithSpinner;
   }, [selections]);
-
 
   const handlePodcastPress = async (podcast: WeeklyPodcast) => {
     if (podcast.category === 'spinner') {
@@ -256,9 +194,10 @@ export default function WeeklySelectionScreen() {
     }
   };
 
-  const handleScroll = (event: { nativeEvent: { contentOffset: { x: number } } }) => {
+  // Only update index when scrolling ends to avoid re-renders during scroll
+  const handleScrollEnd = (event: { nativeEvent: { contentOffset: { x: number } } }) => {
     const offsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(offsetX / CARD_WIDTH);
+    const index = Math.round(offsetX / snapInterval);
     setCurrentIndex(index);
   };
 
@@ -284,12 +223,21 @@ export default function WeeklySelectionScreen() {
           </View>
         </View>
 
-        <View style={styles.scrollContainer}>
-          <ScrollView
+        <View
+          style={styles.scrollContainer}
+          onLayout={(event) => {
+            const { height } = event.nativeEvent.layout;
+            setContainerHeight(height);
+          }}
+        >
+          <Animated.ScrollView
             horizontal
-            pagingEnabled
             showsHorizontalScrollIndicator={false}
-            onScroll={handleScroll}
+            onMomentumScrollEnd={handleScrollEnd}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+              { useNativeDriver: false }
+            )}
             scrollEventThrottle={16}
             contentContainerStyle={styles.scrollContent}
             decelerationRate="fast"
@@ -298,22 +246,97 @@ export default function WeeklySelectionScreen() {
           >
             <View style={styles.cardsWrapper}>
               {podcastDataWithSpinner.map((podcast, index) => (
-                <View key={podcast.id} style={styles.card}>
+                <View key={podcast.id} style={[styles.card, containerHeight > 0 && { height: containerHeight}]}>
                   <View style={styles.cardContent}>
                     {podcast.category === 'spinner' ? (
-                      // Special layout for spinner card
-                      <>
-                        <View>
-                          <View style={styles.spinnerCategoryPill}>
-                            <Text style={styles.spinnerCategoryText}>Wild card</Text>
+                      // Special layout for spinner card - show revealed episode or spinner
+                      wildcardEpisode ? (
+                        // Revealed wildcard episode card
+                        <>
+                          <View>
+                            <View style={styles.cardHeader}>
+                              <View style={styles.imageContainer}>
+                                {wildcardEpisode.image ? (
+                                  <Image source={{ uri: wildcardEpisode.image }} style={styles.podcastImage} />
+                                ) : (
+                                  <View style={styles.placeholderImage}>
+                                    <Text style={styles.placeholderText}>
+                                      {wildcardEpisode.title.charAt(0).toUpperCase()}
+                                    </Text>
+                                  </View>
+                                )}
+                                <StarBurst style={styles.starBurst} />
+                              </View>
+                              <Text style={styles.categoryLabel}>{wildcardCategory || 'Wild card'}</Text>
+                            </View>
+
+                            <Text style={styles.podcastTitle}>{wildcardEpisode.title}</Text>
+                            <Text style={styles.podcastSource}>{wildcardEpisode.source}</Text>
+
+                            <View style={styles.metaContainer}>
+                              <View style={styles.membersContainer}>
+                                <Text style={styles.fireEmoji}>🎲</Text>
+                                <Text style={styles.membersText}>
+                                  Your wildcard pick!
+                                </Text>
+                              </View>
+                            </View>
                           </View>
-                          <Text style={[styles.podcastTitle, styles.spinnerTitle]}>{podcast.source}</Text>
-                          <Text style={styles.spinnerSubtitle}>{podcast.title}</Text>
-                        </View>
-                        <View style={styles.spinnerContainer}>
-                          <SpinnerWheel />
-                        </View>
-                      </>
+                          <View style={styles.wildcardButtonsContainer}>
+                            <TouchableOpacity
+                              onPress={() => handlePodcastPress(wildcardEpisode)}
+                              activeOpacity={0.9}
+                              style={[
+                                styles.tellMeMoreButton,
+                                styles.wildcardMainButton,
+                                userChoice?.id === wildcardEpisode.id && styles.listenButton
+                              ]}
+                            >
+                              <Text style={[
+                                styles.tellMeMoreText,
+                                userChoice?.id === wildcardEpisode.id && styles.listenButtonText
+                              ]}>
+                                {userChoice?.id === wildcardEpisode.id ? 'Listen' : 'Tell me more'}
+                              </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={handleRespin}
+                              activeOpacity={0.8}
+                              style={styles.respinButton}
+                            >
+                              <Ionicons name="refresh" size={18} color="#E05F4E" />
+                              <Text style={styles.respinButtonText}>Respin</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </>
+                      ) : loadingWildcard ? (
+                        // Loading state
+                        <>
+                          <View>
+                            <View style={styles.spinnerCategoryPill}>
+                              <Text style={styles.spinnerCategoryText}>{wildcardCategory || 'Wild card'}</Text>
+                            </View>
+                            <Text style={[styles.podcastTitle, styles.spinnerTitle]}>Finding your podcast...</Text>
+                          </View>
+                          <View style={styles.spinnerContainer}>
+                            <ActivityIndicator size="large" color="#E05F4E" />
+                          </View>
+                        </>
+                      ) : (
+                        // Spinner wheel (initial state)
+                        <>
+                          <View>
+                            <View style={styles.spinnerCategoryPill}>
+                              <Text style={styles.spinnerCategoryText}>Wild card</Text>
+                            </View>
+                            <Text style={[styles.podcastTitle, styles.spinnerTitle]}>{podcast.title}</Text>
+                            <Text style={styles.spinnerSubtitle}>{podcast.source}</Text>
+                          </View>
+                          <View style={styles.spinnerContainer}>
+                            <SpinnerWheel onLetsGo={handleWildcardLetsGo} />
+                          </View>
+                        </>
+                      )
                     ) : (
                       // Regular podcast card layout
                       <>
@@ -329,9 +352,7 @@ export default function WeeklySelectionScreen() {
                                   </Text>
                                 </View>
                               )}
-                              {index === 0 && (
-                                <StarBurst style={styles.starBurst} />
-                              )}
+                              <StarBurst style={styles.starBurst} />
                             </View>
                             <Text style={styles.categoryLabel}>{podcast.categoryLabel}</Text>
                           </View>
@@ -369,19 +390,51 @@ export default function WeeklySelectionScreen() {
                 </View>
               ))}
             </View>
-          </ScrollView>
+          </Animated.ScrollView>
         </View>
 
         <View style={styles.pagination}>
-          {podcastDataWithSpinner.map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.paginationDot,
-                index === currentIndex && styles.paginationDotActive,
-              ]}
-            />
-          ))}
+          <View style={{ flexDirection: 'row', position: 'relative' }}>
+            {podcastDataWithSpinner.map((_, index) => (
+              <View key={index} style={styles.paginationDot} />
+            ))}
+            {/* Animated active indicator with stretch effect - only render with 2+ items */}
+            {podcastDataWithSpinner.length >= 2 && (
+              <Animated.View
+                style={[
+                  styles.paginationDotActive,
+                  {
+                    position: 'absolute',
+                    top: 0,
+                    left: 4,
+                    // Animate width to stretch between dots
+                    width: scrollX.interpolate({
+                      inputRange: podcastDataWithSpinner.flatMap((_, i) =>
+                        i < podcastDataWithSpinner.length - 1
+                          ? [i * snapInterval, (i + 0.5) * snapInterval, (i + 1) * snapInterval]
+                          : [i * snapInterval]
+                      ),
+                      outputRange: podcastDataWithSpinner.flatMap((_, i) =>
+                        i < podcastDataWithSpinner.length - 1
+                          ? [8, 24, 8] // Normal -> stretched -> normal
+                          : [8]
+                      ),
+                      extrapolate: 'clamp',
+                    }),
+                    transform: [
+                      {
+                        translateX: scrollX.interpolate({
+                          inputRange: podcastDataWithSpinner.map((_, i) => i * snapInterval),
+                          outputRange: podcastDataWithSpinner.map((_, i) => i * 16),
+                          extrapolate: 'clamp',
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              />
+            )}
+          </View>
         </View>
       </View>
     </SafeAreaView>

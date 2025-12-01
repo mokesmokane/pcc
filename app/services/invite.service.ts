@@ -119,7 +119,7 @@ class InviteService {
       const result = await Share.share({
         message,
         ...(Platform.OS === 'ios' && {
-          url: 'https://podcastclub.app', // Replace with your actual app URL
+          url: 'https://www.podcastclub.co.uk',
         }),
       });
 
@@ -136,7 +136,7 @@ class InviteService {
    */
   generateInviteMessage(userName?: string): string {
     const appName = 'Podcast Club';
-    const appUrl = 'https://podcastclub.app'; // Replace with your actual app URL/store link
+    const appUrl = 'https://www.podcastclub.co.uk';
 
     if (userName) {
       return `Hey! ${userName} invited you to join ${appName} - a community where we listen to and discuss podcasts together. Join us: ${appUrl}`;

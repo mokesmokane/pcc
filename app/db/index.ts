@@ -2,6 +2,7 @@ import { Database } from '@nozbe/watermelondb';
 import SQLiteAdapter from '@nozbe/watermelondb/adapters/sqlite';
 import { schema } from './schema';
 import WeeklySelection from '../data/models/weekly-selection.model';
+import WeeklyCategorySelection from '../data/models/weekly-category-selection.model';
 import UserWeeklyChoice from '../data/models/user-weekly-choice.model';
 import UserEpisodeProgress from '../models/UserEpisodeProgress';
 import Profile from '../data/models/profile.model';
@@ -22,7 +23,7 @@ import ConversationStarter from '../data/models/conversation-starter.model';
 
 const adapter = new SQLiteAdapter({
   schema,
-  dbName: 'pcc_database_v18', // Reset to fix queuing issues
+  dbName: 'pcc_database_v20', // Added weekly_category_selections for wild card
   jsi: false,
   onSetUpError: (error) => {
     console.error('Database setup error:', error);
@@ -33,6 +34,7 @@ const database = new Database({
   adapter,
   modelClasses: [
     WeeklySelection,
+    WeeklyCategorySelection,
     UserWeeklyChoice,
     UserEpisodeProgress,
     Profile,

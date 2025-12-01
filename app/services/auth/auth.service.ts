@@ -181,20 +181,22 @@ export class AuthService {
     }
   }
 
-  // Update profile with first and last names
+  // Update profile with first and last names (upsert to handle new profiles)
   async updateProfileWithNames(userId: string, firstName: string, lastName: string) {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .update({
+        .upsert({
+          id: userId,
           first_name: firstName,
           last_name: lastName,
           updated_at: new Date().toISOString()
-        })
-        .eq('id', userId);
+        }, {
+          onConflict: 'id'
+        });
 
       if (error) throw error;
-      console.log('Profile updated with names successfully');
+      console.log('Profile updated with names successfully:', { firstName, lastName });
       return data;
     } catch (error) {
       console.error('Error updating profile with names:', error);

@@ -28,7 +28,7 @@ export function CommentsHeader({
     <View style={[styles.header, dragHandlers]} {...(dragHandlers || {})}>
       <View style={styles.titleContainer}>
         <Text style={[styles.title, { fontFamily: fontsLoaded ? 'PaytoneOne_400Regular' : undefined }]}>
-          Comments
+          Discussion
         </Text>
         <Text style={styles.commentCount}>({commentCount})</Text>
       </View>

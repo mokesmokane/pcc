@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
+import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useMembers } from '../../contexts/MembersContext';
+import { AvatarStack } from '../AvatarStack';
 
 interface TrackInfoProps {
   title?: string;
@@ -20,6 +22,9 @@ export function TrackInfo({
   onDownload,
   episodeId
 }: TrackInfoProps) {
+  const [fontsLoaded] = useFonts({
+    PaytoneOne_400Regular,
+  });
   const { members, stats, loadMembers } = useMembers();
 
   useEffect(() => {
@@ -34,21 +39,26 @@ export function TrackInfo({
   ).length;
   return (
     <View style={styles.container}>
-      <Text style={styles.title} numberOfLines={3}>
-        {title}
+      <Text style={[styles.title, fontsLoaded && { fontFamily: 'PaytoneOne_400Regular' }]} numberOfLines={3}>
+        {artist}
       </Text>
-      <Text style={styles.artist}>{artist}</Text>
+      <Text style={styles.artist}>{title}</Text>
 
       <View style={styles.statsContainer}>
         <View style={styles.statsContent}>
-          <View style={styles.stat}>
-            <Text style={styles.statEmoji}>🔥</Text>
-            <Text style={styles.statText}>{stats.totalMembers} {stats.totalMembers === 1 ? 'person' : 'people'} in the club</Text>
+          <View style={styles.avatarRow}>
+            <AvatarStack
+              members={members.map(m => ({ id: m.id, avatar: m.avatar, name: m.name }))}
+              totalCount={stats.totalMembers}
+              maxDisplay={5}
+              size="medium"
+            />
+            <Text style={styles.statText}>{stats.totalMembers} in the club</Text>
           </View>
           {listeningNow > 0 && (
             <View style={styles.stat}>
               <Text style={styles.statEmoji}>🎧</Text>
-              <Text style={styles.statText}>{listeningNow} {listeningNow === 1 ? 'person' : 'people'} listening right now</Text>
+              <Text style={styles.statText}>{listeningNow} listening now</Text>
             </View>
           )}
         </View>
@@ -78,11 +88,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '400',
     color: '#E05F4E',
     marginBottom: 8,
-    lineHeight: 26,
+    lineHeight: 28,
   },
   artist: {
     fontSize: 14,
@@ -101,6 +111,12 @@ const styles = StyleSheet.create({
   downloadIconButton: {
     padding: 8,
     marginLeft: 12,
+  },
+  avatarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 6,
   },
   stat: {
     flexDirection: 'row',

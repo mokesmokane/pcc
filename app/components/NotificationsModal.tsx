@@ -11,6 +11,7 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
 import { useNotifications } from '../contexts/NotificationsContext';
 import Notification from '../data/models/notification.model';
 import { formatDistanceToNow } from 'date-fns';
@@ -22,6 +23,10 @@ interface NotificationsModalProps {
 }
 
 export function NotificationsModal({ visible, onClose }: NotificationsModalProps) {
+  const [fontsLoaded] = useFonts({
+    PaytoneOne_400Regular,
+  });
+
   const {
     notifications,
     unreadCount,
@@ -154,6 +159,7 @@ export function NotificationsModal({ visible, onClose }: NotificationsModalProps
         style={[styles.notificationItem, !item.isRead && styles.notificationItemUnread]}
         onPress={() => handleNotificationPress(item)}
       >
+        {!item.isRead && <View style={styles.unreadDot} />}
         <View style={[styles.iconContainer, !item.isRead && styles.iconContainerUnread]}>
           {showAvatar ? (
             <Image
@@ -170,43 +176,56 @@ export function NotificationsModal({ visible, onClose }: NotificationsModalProps
         </View>
 
         <View style={styles.notificationContent}>
-          <Text style={[styles.notificationTitle, !item.isRead && styles.notificationTitleUnread]}>
-            {item.title}
+          <Text style={[styles.notificationMessage, !item.isRead && styles.notificationMessageUnread]}>
+            {message}
           </Text>
-          <Text style={styles.notificationMessage}>{message}</Text>
           <Text style={styles.notificationTime}>{timeAgo}</Text>
         </View>
-
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => handleDeleteNotification(item.id)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="close-circle" size={20} color="#C4BFB9" />
-        </TouchableOpacity>
-
-        {!item.isRead && <View style={styles.unreadDot} />}
       </TouchableOpacity>
     );
   };
 
+  // Group notifications by time period
+  const groupNotifications = () => {
+    const now = new Date();
+    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const thisWeek: Notification[] = [];
+    const previous: Notification[] = [];
+
+    notifications.forEach(notification => {
+      if (notification.createdAt >= oneWeekAgo) {
+        thisWeek.push(notification);
+      } else {
+        previous.push(notification);
+      }
+    });
+
+    return { thisWeek, previous };
+  };
+
+  const { thisWeek, previous } = groupNotifications();
+
+  const renderSectionHeader = (title: string) => (
+    <Text style={styles.sectionHeader}>{title}</Text>
+  );
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <SafeAreaView style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={28} color="#403837" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>
-            Notifications {unreadCount > 0 && `(${unreadCount})`}
-          </Text>
-          {unreadCount > 0 && (
-            <TouchableOpacity onPress={handleMarkAllAsRead} style={styles.markAllButton}>
-              <Text style={styles.markAllButtonText}>Mark all read</Text>
+        {/* Title Section */}
+        <View style={styles.titleSection}>
+          <View style={styles.titleRow}>
+            <View style={styles.titleContent}>
+              <Text style={[styles.headerTitle, fontsLoaded && { fontFamily: 'PaytoneOne_400Regular' }]}>Notifications</Text>
+              <Text style={styles.headerSubtitle}>
+                Ping! You have an update{notifications.length === 0 && ' (is what we\'ll say if you have any notifications 🙃)'}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Ionicons name="close" size={24} color="#403837" />
             </TouchableOpacity>
-          )}
-          {unreadCount === 0 && <View style={styles.placeholder} />}
+          </View>
         </View>
 
         {/* Notifications List */}
@@ -216,21 +235,24 @@ export function NotificationsModal({ visible, onClose }: NotificationsModalProps
           </View>
         ) : (
           <FlatList
-            data={notifications}
-            renderItem={renderNotification}
-            keyExtractor={(item) => item.id}
+            data={[
+              ...(thisWeek.length > 0 ? [{ type: 'header', title: 'This week' }] : []),
+              ...thisWeek.map(n => ({ type: 'notification', data: n })),
+              ...(previous.length > 0 ? [{ type: 'header', title: 'Previous' }] : []),
+              ...previous.map(n => ({ type: 'notification', data: n })),
+            ]}
+            renderItem={({ item }) => {
+              if (item.type === 'header') {
+                return renderSectionHeader(item.title as string);
+              }
+              return renderNotification({ item: item.data as Notification });
+            }}
+            keyExtractor={(item, index) =>
+              item.type === 'header' ? `header-${item.title}` : (item.data as Notification).id
+            }
             contentContainerStyle={styles.listContent}
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            ListEmptyComponent={
-              <View style={styles.emptyContainer}>
-                <Ionicons name="notifications-outline" size={64} color="#C4BFB9" />
-                <Text style={styles.emptyText}>No notifications yet</Text>
-                <Text style={styles.emptySubtext}>
-                  We'll notify you when something interesting happens!
-                </Text>
-              </View>
-            }
           />
         )}
       </SafeAreaView>
@@ -243,35 +265,39 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F4F1ED',
   },
-  header: {
+  titleSection: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+  },
+  titleRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E5E1',
+  },
+  titleContent: {
+    flex: 1,
   },
   closeButton: {
     padding: 4,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#403837',
-  },
-  markAllButton: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-  },
-  markAllButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 36,
+    fontWeight: '400',
     color: '#E05F4E',
+    marginBottom: 4,
   },
-  placeholder: {
-    width: 80,
+  headerSubtitle: {
+    fontSize: 16,
+    color: '#8B8680',
+  },
+  sectionHeader: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#8B8680',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
   loadingContainer: {
     flex: 1,
@@ -280,26 +306,34 @@ const styles = StyleSheet.create({
     paddingTop: 60,
   },
   listContent: {
-    paddingVertical: 8,
+    paddingBottom: 40,
   },
   notificationItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     backgroundColor: '#FFFFFF',
-    marginHorizontal: 16,
-    marginVertical: 4,
-    padding: 12,
-    borderRadius: 12,
+    marginHorizontal: 20,
+    marginVertical: 6,
+    padding: 16,
+    borderRadius: 16,
     position: 'relative',
   },
   notificationItemUnread: {
-    backgroundColor: '#FFF5F4',
+    backgroundColor: '#FFFFFF',
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#E05F4E',
+    marginRight: 12,
+    marginTop: 6,
   },
   iconContainer: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F8F6F3',
+    backgroundColor: '#F4F1ED',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -314,56 +348,18 @@ const styles = StyleSheet.create({
   },
   notificationContent: {
     flex: 1,
-    paddingRight: 8,
-  },
-  notificationTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#403837',
-    marginBottom: 4,
-  },
-  notificationTitleUnread: {
-    color: '#E05F4E',
   },
   notificationMessage: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#403837',
     marginBottom: 4,
-    lineHeight: 20,
+    lineHeight: 22,
+  },
+  notificationMessageUnread: {
+    fontWeight: '600',
   },
   notificationTime: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#8B8680',
-  },
-  deleteButton: {
-    padding: 4,
-  },
-  unreadDot: {
-    position: 'absolute',
-    top: 16,
-    right: 12,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#E05F4E',
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 100,
-    paddingHorizontal: 40,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#403837',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#8B8680',
-    textAlign: 'center',
   },
 });

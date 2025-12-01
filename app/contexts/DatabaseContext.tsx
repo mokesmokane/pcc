@@ -3,6 +3,7 @@ import React, { createContext, useContext, useRef, useEffect } from 'react';
 import type { Database } from '@nozbe/watermelondb';
 import database from '../db';
 import { WeeklySelectionRepository } from '../data/repositories/weekly-selection.repository';
+import { WeeklyCategorySelectionRepository } from '../data/repositories/weekly-category-selection.repository';
 import { ProgressRepository } from '../data/repositories/progress.repository';
 import { ProfileRepository } from '../data/repositories/profile.repository';
 import { CommentRepository } from '../data/repositories/comment.repository';
@@ -13,6 +14,7 @@ import { RealtimeManager } from '../services/realtime/realtime.manager';
 interface DatabaseContextType {
   database: Database;
   weeklySelectionRepository: WeeklySelectionRepository;
+  weeklyCategorySelectionRepository: WeeklyCategorySelectionRepository;
   progressRepository: ProgressRepository;
   profileRepository: ProfileRepository;
   commentRepository: CommentRepository;
@@ -43,6 +45,7 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({ children }) 
     repositoriesRef.current = {
       database,
       weeklySelectionRepository: new WeeklySelectionRepository(database),
+      weeklyCategorySelectionRepository: new WeeklyCategorySelectionRepository(database),
       progressRepository: new ProgressRepository(database),
       profileRepository: new ProfileRepository(database),
       commentRepository: new CommentRepository(database),

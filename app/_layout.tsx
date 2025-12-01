@@ -129,6 +129,9 @@ export default function RootLayout() {
                                   <Stack.Screen name="episode-complete" options={{ headerShown: false }} />
                                   <Stack.Screen name="pick-another" options={{ headerShown: false }} />
                                   <Stack.Screen name="have-your-say" options={{ headerShown: false }} />
+                                  <Stack.Screen name="onboarding-struggles" options={{ headerShown: false }} />
+                                  <Stack.Screen name="onboarding-interests" options={{ headerShown: false }} />
+                                  <Stack.Screen name="onboarding-ready" options={{ headerShown: false }} />
                                 </Stack>
                             </WeeklySelectionsProvider>
                           </TranscriptProvider>

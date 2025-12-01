@@ -1,6 +1,12 @@
 import React from 'react';
 import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+// Generate DiceBear avatar URL
+const getDiceBearAvatar = (seed: string) => {
+  const encodedSeed = encodeURIComponent(seed);
+  return `https://api.dicebear.com/7.x/avataaars/png?seed=${encodedSeed}&backgroundColor=f4f1ed`;
+};
+
 interface MemberData {
   id: string;
   name: string;
@@ -46,7 +52,7 @@ export function MembersDisplay({ progressPercentage = 0, members = [], stats }: 
         <View style={styles.membersList}>
           {displayedMembers.map((member) => (
             <View key={member.id} style={styles.memberAvatar}>
-              <Image source={{ uri: member.avatar }} style={styles.avatar} />
+              <Image source={{ uri: member.avatar || getDiceBearAvatar(member.id) }} style={styles.avatar} />
             </View>
           ))}
         </View>

@@ -203,7 +203,7 @@ export default function CurrentPodcastSection({
             </Text>
             <View style={styles.avatarStackContainer}>
               <AvatarStack
-                members={members.map(m => ({ id: m.id, avatar: m.avatar }))}
+                members={members.map(m => ({ id: m.id, avatar: m.avatar, name: m.name }))}
                 totalCount={totalMembers}
                 maxDisplay={5}
                 size="medium"

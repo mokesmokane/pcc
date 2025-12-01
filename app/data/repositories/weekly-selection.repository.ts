@@ -7,7 +7,7 @@ import { supabase } from '../../lib/supabase';
 
 export class WeeklySelectionRepository extends BaseRepository<WeeklySelection> {
   private lastSyncTime: number = 0;
-  private CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+  private CACHE_TTL = 30 * 1000; // 30 seconds
 
   constructor(database: Database) {
     super(database, 'weekly_selections');
@@ -228,6 +228,45 @@ export class WeeklySelectionRepository extends BaseRepository<WeeklySelection> {
     }
   }
 
+  async clearUserWeeklyChoices(userId: string): Promise<boolean> {
+    const weekStart = this.getWeekStart();
+
+    try {
+      const database = this.database;
+      await this.database.write(async function clearUserChoicesLocally() {
+        const userChoicesCollection = database.get('user_weekly_choices');
+        const existing = await userChoicesCollection
+          .query(
+            Q.where('user_id', userId),
+            Q.where('week_start', weekStart)
+          )
+          .fetch();
+
+        // Delete all choices for this user and week
+        for (const choice of existing) {
+          await choice.destroyPermanently();
+        }
+      });
+
+      // Also delete from Supabase
+      const { error } = await supabase
+        .from('user_weekly_choices')
+        .delete()
+        .eq('user_id', userId)
+        .eq('week_start', weekStart);
+
+      if (error) {
+        console.error('Failed to delete from Supabase:', error);
+      }
+
+      console.log('✅ Cleared user weekly choices for testing');
+      return true;
+    } catch (error) {
+      console.error('Failed to clear user weekly choices:', error);
+      return false;
+    }
+  }
+
   async getEpisodeMemberCount(episodeId: string): Promise<number> {
     try {
       const weekStart = this.getWeekStart();
@@ -281,6 +320,20 @@ export class WeeklySelectionRepository extends BaseRepository<WeeklySelection> {
       if (error) {
         console.error('Error syncing weekly selections:', error);
         throw error;
+      }
+
+      // Get remote episode IDs
+      const remoteIds = new Set(data?.map(item => item.id) || []);
+
+      // Delete local items for this week that are no longer in remote
+      const localItems = await this.query([Q.where('week_start', weekStart)]);
+      for (const localItem of localItems) {
+        if (!remoteIds.has(localItem.id)) {
+          console.log('🗑️ Removing stale weekly selection:', localItem.id);
+          await this.database.write(async () => {
+            await localItem.destroyPermanently();
+          });
+        }
       }
 
       if (data && data.length > 0) {

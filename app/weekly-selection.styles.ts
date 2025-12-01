@@ -63,10 +63,10 @@ export const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
     marginRight: 16,
-    height: 420,
+    // Height is set dynamically via onLayout in the component
   },
   cardContent: {
-    backgroundColor: '#E6DED3',
+    backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 24,
     flex: 1,
@@ -110,7 +110,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     alignSelf: 'flex-start',
-    marginBottom: 16,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: '#E05F4E',
   },
@@ -190,8 +190,10 @@ export const styles = StyleSheet.create({
   pagination: {
     flexDirection: 'row',
     justifyContent: 'center',
-    paddingVertical: 16,
-    paddingBottom: 20,
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingBottom: 8,
+    position: 'relative',
   },
   paginationDot: {
     width: 8,
@@ -202,7 +204,9 @@ export const styles = StyleSheet.create({
   },
   paginationDotActive: {
     backgroundColor: '#E05F4E',
-    width: 24,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   listenButton: {
     backgroundColor: '#E05F4E',
@@ -210,6 +214,29 @@ export const styles = StyleSheet.create({
   },
   listenButtonText: {
     color: '#FFFFFF',
+  },
+  wildcardButtonsContainer: {
+    marginTop: 16,
+  },
+  wildcardMainButton: {
+    marginBottom: 12,
+  },
+  respinButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E05F4E',
+    backgroundColor: 'transparent',
+  },
+  respinButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#E05F4E',
+    marginLeft: 6,
   },
 });
 

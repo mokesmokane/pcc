@@ -1,0 +1,676 @@
+=== Art & Design ===
+1. Dish
+   RSS: https://feeds.megaphone.fm/dish
+2. ill-advised by Bill Nighy
+   RSS: https://feeds.acast.com/public/shows/68d57603099369ce427aef49
+3. Table Manners with Jessie and Lennie Ware
+   RSS: https://feeds.acast.com/public/shows/4d1603d1-3c56-4f4d-a5b3-7611f87011a9
+4. Sentimental Garbage
+   RSS: https://feeds.acast.com/public/shows/edd6bde5-221e-4c07-bde8-2a0241ccc6e0
+5. This Life of Mine with James Corden
+   RSS: https://www.omnycontent.com/d/playlist/796469f9-ea34-46a2-8776-ad0f015d6beb/c7f3cf94-44da-4385-91f7-b36b010e750c/0f520a1d-43d7-4f50-8535-b36b010e78ed/podcast.rss
+6. 99% Invisible
+   RSS: https://feeds.simplecast.com/BqbsxVfO
+7. Fashion Neurosis with Bella Freud
+   RSS: https://feeds.megaphone.fm/fashionneurosis
+8. Sara & Cariad's Weirdos Book Club
+   RSS: https://feeds.acast.com/public/shows/64b69e3ec409730011da06ee
+9. The Magnus Archives
+   RSS: https://feeds.acast.com/public/shows/b6085bcd-3542-4a43-b6a8-021e3fd251b8
+10. Talk ’90s to me
+   RSS: https://feeds.megaphone.fm/NSR2448691535
+11. The Go To Food Podcast
+   RSS: https://feeds.acast.com/public/shows/67cb0e5722c74795c356299d
+12. Articles of Interest
+   RSS: https://feed.articlesofinterest.club/
+13. Jane Austen's Paper Trail
+   RSS: https://feeds.captivate.fm/jane-austens-paper-trail/
+14. Comfort Eating with Grace Dent
+   RSS: https://www.theguardian.com/lifeandstyle/series/comforteatingwithgracedent/podcast.xml
+15. The Moth
+   RSS: http://feeds.feedburner.com/themothpodcast
+16. The Stack
+   RSS: https://anchor.fm/s/10a51ac60/podcast/rss
+17. All About The Archers
+   RSS: https://feeds.acast.com/public/shows/64e79212f8a6d800111e7958
+18. The Shed
+   RSS: https://theshedmaster.podomatic.com/rss2.xml
+19. 岩中花述
+   RSS: https://feed.xyzfm.space/hwen8wf69c6g
+20. A Good Read
+   RSS: https://podcasts.files.bbci.co.uk/b006v8jn.rss
+21. This Cultural Life
+   RSS: https://podcasts.files.bbci.co.uk/m0010fl4.rss
+22. Fresh Air
+   RSS: https://feeds.npr.org/381444908/podcast.xml
+23. Waldy and Bendy’s Adventures in Art
+   RSS: https://feed.podbean.com/waldyandbendy/feed.xml
+24. The Food Programme
+   RSS: https://podcasts.files.bbci.co.uk/b006qnx3.rss
+25. Spooning with Mark Wogan
+   RSS: https://feeds.acast.com/public/shows/6565dd7277cca90012c298c8
+
+=== Comedy ===
+1. Parenting Hell with Rob Beckett and Josh Widdicombe
+   RSS: https://feeds.megaphone.fm/GLT9881106244
+2. Off Menu with Ed Gamble and James Acaster
+   RSS: https://feeds.acast.com/public/shows/b19ac1f5-6adf-4c8b-aa1a-2af2160f99e4
+3. Sh**ged Married Annoyed
+   RSS: https://feeds.megaphone.fm/sma
+4. The Joe Rogan Experience
+   RSS: https://feeds.megaphone.fm/GLT1412515089
+5. No Such Thing As A Fish
+   RSS: https://audioboom.com/channels/2399216.rss
+6. LuAnna: The Podcast
+   RSS: https://feeds.captivate.fm/luanna-the-podcast/
+7. Elis James and John Robins
+   RSS: https://podcasts.files.bbci.co.uk/m0005fdz.rss
+8. Chatabix
+   RSS: https://feeds.megaphone.fm/GLT7256806225
+9. My Therapist Ghosted Me
+   RSS: https://feeds.captivate.fm/my-therapist-ghosted-me/
+10. Staying Relevant
+   RSS: https://feeds.acast.com/public/shows/65e9b939fe108d0016acd0a7
+11. Wolf & Owl with Romesh Ranganathan and Tom Davis
+   RSS: https://feeds.megaphone.fm/GLT9487939818
+12. The Therapy Crouch
+   RSS: https://feeds.acast.com/public/shows/the-therapy-crouch
+13. Fin vs History
+   RSS: https://feeds.megaphone.fm/finvshistory
+14. Help I Sexted My Boss
+   RSS: https://access.acast.com/rss/82de067d-b294-48af-b986-6a14d549f6f4/default
+15. THE ADAM BUXTON PODCAST
+   RSS: https://feeds.acast.com/public/shows/18dcd5db-f898-42c6-ab31-3a1853c1a645
+16. The Romesh Ranganathan Show
+   RSS: https://feeds.megaphone.fm/romesh
+17. Joe Marler Will See You Now
+   RSS: https://feeds.megaphone.fm/GLT9033701265
+18. What Did You Do Yesterday? with Max Rushden & David O'Doherty
+   RSS: https://feeds.megaphone.fm/GLT5518536193
+19. Frank Off The Radio: The Frank Skinner Podcast
+   RSS: https://feeds.megaphone.fm/frankskinnershow
+20. My Dad Wrote A Porno
+   RSS: https://feeds.acast.com/public/shows/ee6fd316-9ce1-4f8a-ba2c-a4a4bf5643e4
+21. NearlyParents
+   RSS: https://feeds.acast.com/public/shows/nearlyweds
+22. Alan Carr's 'Life's a Beach'
+   RSS: https://feeds.megaphone.fm/GLT3251662520
+23. Joe and James Fact Up
+   RSS: https://feeds.acast.com/public/shows/68b5cd3f41b96bff8d6b47a3
+24. The Brian Badonde Bodcast
+   RSS: https://feeds.acast.com/public/shows/691332bc4ce5daaedc02f79f
+25. The Buckleys
+   RSS: https://feeds.megaphone.fm/GLT6099062880
+
+=== Culture ===
+1. Great Company with Jamie Laing
+   RSS: https://feeds.acast.com/public/shows/65d737dfdc02e00016c413b2
+2. Rosebud with Gyles Brandreth
+   RSS: https://feeds.acast.com/public/shows/6835e960944c948b9a623f10
+3. The Louis Theroux Podcast
+   RSS: https://feeds.megaphone.fm/GLT1948741183
+4. How To Fail With Elizabeth Day
+   RSS: https://rss.pdrl.fm/e402a9/feeds.megaphone.fm/howtofail
+5. Dig It with Jo Whiley and Zoe Ball
+   RSS: https://audioboom.com/channels/5157075.rss
+6. Miss Me?
+   RSS: https://podcasts.files.bbci.co.uk/p0hhgmp6.rss
+7. Radical with Amol Rajan
+   RSS: https://podcasts.files.bbci.co.uk/p0gg4k6r.rss
+8. Anything Goes with James English
+   RSS: https://feeds.megaphone.fm/APL6763650566
+9. Desert Island Discs
+   RSS: https://podcasts.files.bbci.co.uk/b006qnmr.rss
+10. Adrift
+   RSS: https://rss.art19.com/adrift
+11. Modern Wisdom
+   RSS: https://feeds.megaphone.fm/SIXMSB5088139739
+12. Planet Normal
+   RSS: https://feeds.acast.com/public/shows/65804e0f1585de00125ded2d
+13. The Affair…with Anna Williamson
+   RSS: https://audioboom.com/channels/5151718.rss
+14. Vogue & Amber
+   RSS: https://feeds.captivate.fm/spencer-vogue/
+15. Stuff You Should Know
+   RSS: https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/a91018a4-ea4f-4130-bf55-ae270180c327/44710ecc-10bb-48d1-93c7-ae270180c33e/podcast.rss
+16. Strangers on a Bench
+   RSS: https://feeds.acast.com/public/shows/66f5255eae48e0cfdb0b36bb
+17. Pottering with Tom Allen
+   RSS: https://audioboom.com/channels/5160692.rss
+18. Shameless
+   RSS: https://feeds.megaphone.fm/ASEMS4278037250
+19. Ready to Talk with Emma Barnett
+   RSS: https://podcasts.files.bbci.co.uk/p0mdcpkb.rss
+20. Deep Water | Tortoise Investigates
+   RSS: https://feeds.acast.com/public/shows/739cfc71-b7ce-45b1-9285-f3a84a2502b2
+21. Olivia's House with Olivia Attwood
+   RSS: https://feeds.megaphone.fm/olivias-house
+22. The Shawn Ryan Show
+   RSS: https://rss.pdrl.fm/55dc8e/feeds.megaphone.fm/WWO7410387571
+23. Uncanny
+   RSS: https://podcasts.files.bbci.co.uk/m0010x7c.rss
+24. We Need To Talk with Paul C. Brunson
+   RSS: https://feeds.megaphone.fm/weneedtotalk
+25. The Girls Bathroom
+   RSS: https://feeds.acast.com/public/shows/bd38ad29-6b25-4be0-8796-a310aded9b55
+
+=== Entrepreneurship ===
+1. The Diary Of A CEO with Steven Bartlett
+   RSS: https://rss2.flightcast.com/xmsftuzjjykcmqwolaqn6mdn
+2. The Martin Lewis Podcast
+   RSS: https://podcasts.files.bbci.co.uk/p02pc9xt.rss
+3. Unhedged
+   RSS: https://feeds.acast.com/public/shows/6478a825654260001190a7cb
+4. Purposing
+   RSS: https://feeds.captivate.fm/purposing/
+5. The Property Podcast
+   RSS: https://feeds.megaphone.fm/PROPERTYHUB3835789273
+6. Merryn Talks Money
+   RSS: https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/1742e0df-336e-4798-9bdf-af4d00f3c918/b65f5d94-dd18-419c-9276-af4d00f43c32/podcast.rss
+7. Working Hard with Grace Beverley
+   RSS: https://feeds.acast.com/public/shows/a8b08796-03e4-48c3-9531-3229de80d9ea
+8. Dodge Woodall
+   RSS: https://feeds.acast.com/public/shows/5f76d6a1fe6a4968448339a7
+9. Wake Up to Money
+   RSS: https://podcasts.files.bbci.co.uk/b0070lr5.rss
+10. Prof G Markets
+   RSS: https://feeds.megaphone.fm/profgmarkets
+11. The Meaningful Money Personal Finance Podcast
+   RSS: https://meaningfulmoney.libsyn.com/rss
+12. Aspire with Emma Grede
+   RSS: https://feeds.megaphone.fm/emma-grede
+13. AJ Bell Money & Markets
+   RSS: https://feed.podbean.com/ajbell/feed.xml
+14. Odd Lots
+   RSS: https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/8a94442e-5a74-4fa2-8b8d-ae27003a8d6b/982f5071-765c-403d-969d-ae27003a8d83/podcast.rss
+15. Behind the Money
+   RSS: https://feeds.acast.com/public/shows/6a13c15d-181a-4a2e-a662-739d0e7f731a
+16. The Ramsey Show
+   RSS: https://feeds.megaphone.fm/RM4031649020
+17. Making Money
+   RSS: https://media.rss.com/working-remote-atl/feed.xml
+18. Business Wars
+   RSS: https://rss.art19.com/business-wars
+19. The Tim Ferriss Show
+   RSS: https://rss.art19.com/tim-ferriss-show
+20. A Bit of Optimism
+   RSS: https://feeds.simplecast.com/mDS2jisg
+21. The Prof G Pod with Scott Galloway
+   RSS: https://feeds.megaphone.fm/WWO6655869236
+22. This is Money Podcast
+   RSS: https://audioboom.com/channels/3223350.rss
+23. Garys Economics
+   RSS: https://anchor.fm/s/fad5d8ec/podcast/rss
+24. Many Happy Returns
+   RSS: https://feeds.captivate.fm/many-happy-returns/
+25. James Reed: all about business
+   RSS: https://feeds.captivate.fm/james-reed-all-about-business/
+
+=== Health ===
+1. ZOE Science & Nutrition
+   RSS: https://feeds.megaphone.fm/ZOELIMITED9301524082
+2. Feel Better, Live More with Dr Rangan Chatterjee
+   RSS: https://feeds.megaphone.fm/feelbetterlivemore
+3. The High Performance Podcast
+   RSS: https://access.acast.com/rss/3d30295e-f7fb-5af1-b618-30a8763cc75a
+4. Happy Place
+   RSS: https://feeds.acast.com/public/shows/98ddd5a0-c00b-4f80-9a5b-d4584d0040ac
+5. On Purpose with Jay Shetty
+   RSS: https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/32f1779e-bc01-4d36-89e6-afcb01070c82/e0c8382f-48d4-42bb-89d5-afcb01075cb4/podcast.rss
+6. The Wellness Scoop
+   RSS: https://feeds.megaphone.fm/deliciouslyellapodcast
+7. Huberman Lab
+   RSS: https://feeds.megaphone.fm/hubermanlab
+8. What's Up Docs?
+   RSS: https://podcasts.files.bbci.co.uk/m00298p7.rss
+9. No Appointment Necessary
+   RSS: https://feeds.megaphone.fm/NSR1099550381
+10. Nothing much happens: bedtime stories to help you sleep
+   RSS: https://feeds.megaphone.fm/SSM2868305742
+11. Get Sleepy: Sleep meditation and stories
+   RSS: https://feeds.megaphone.fm/SGP8517078272
+12. The Doctor's Kitchen Podcast
+   RSS: https://feeds.acast.com/public/shows/64913e28-7031-4ea6-9bef-fddf46dfed87
+13. The Liz Earle Wellbeing Show
+   RSS: https://feeds.acast.com/public/shows/5e43fdd6e40bfc8e713b02ff
+14. Passion Struck with John R. Miles
+   RSS: https://rss.art19.com/passion-struck-with-john-r-miles
+15. Is It Hot In Here?
+   RSS: https://anchor.fm/s/105390e58/podcast/rss
+16. UNTAPPED
+   RSS: https://feeds.acast.com/public/shows/6777ae1cd83630b6e3d897f0
+17. The Mid•Point with Gabby Logan
+   RSS: https://feeds.acast.com/public/shows/6310cebaae5d1300124c3544
+18. Sliced Bread
+   RSS: https://podcasts.files.bbci.co.uk/p07012sf.rss
+19. Complex with Kimberley Wilson
+   RSS: https://podcasts.files.bbci.co.uk/p0mcyd0k.rss
+20. ADHD Chatter
+   RSS: https://feeds.megaphone.fm/ADHD3164407625
+21. Sleep Magic: Sleep Hypnosis & Meditation for Sleep Podcast
+   RSS: https://feeds.megaphone.fm/sleepmagic
+22. The Dr Louise Newson Podcast
+   RSS: https://anchor.fm/s/10618cf34/podcast/rss
+23. The Mindset Mentor
+   RSS: https://feeds.simplecast.com/rpKQEwel
+24. How To Be 60 with Kaye Adams
+   RSS: https://feeds.acast.com/public/shows/668eca9cb0f6c963393755f9
+25. The School of Greatness
+   RSS: https://feeds.simplecast.com/AAvup9Zz
+
+=== History ===
+1. The Rest Is History
+   RSS: https://feeds.megaphone.fm/GLT4787413333
+2. WW2 Pod: We Have Ways of Making You Talk
+   RSS: https://feeds.megaphone.fm/GLT8434431415
+3. The Rest Is Classified
+   RSS: https://feeds.megaphone.fm/therestisclassified
+4. Dan Snow's History Hit
+   RSS: https://access.acast.com/rss/c939f8d1-c4bc-478e-8bb9-e5343f9a7ab5
+5. Empire
+   RSS: https://feeds.megaphone.fm/empirepodcast
+6. British Scandal
+   RSS: https://rss.art19.com/british-scandal
+7. Short History Of...
+   RSS: https://feeds.megaphone.fm/NSR8236478683
+8. Journey Through Time
+   RSS: https://feeds.megaphone.fm/journeythroughtime
+9. After Dark: Myths, Misdeeds & the Paranormal
+   RSS: https://access.acast.com/rss/64e89a796854bf00115a70e0
+10. The Ancients
+   RSS: https://access.acast.com/rss/f2925f7a-eb08-471a-9958-387cb5ee6353
+11. Not Just the Tudors
+   RSS: https://access.acast.com/rss/b0ed85cc-f4ed-49e9-b860-0ba48481ae25
+12. Titanic: Ship of Dreams
+   RSS: https://feeds.megaphone.fm/NSR5279445529
+13. History Extra podcast
+   RSS: https://feeds.megaphone.fm/GLT5697813216
+14. Gone Medieval
+   RSS: https://access.acast.com/rss/11c1773b-6d50-4dbb-b543-483046bdc241
+15. The History Podcast
+   RSS: https://podcasts.files.bbci.co.uk/m001z66c.rss
+16. Betwixt The Sheets: The History of Sex, Scandal & Society
+   RSS: https://access.acast.com/rss/6215faef4b795a5d1ffd3b62
+17. You're Dead to Me
+   RSS: https://podcasts.files.bbci.co.uk/p07mdbhg.rss
+18. In Our Time
+   RSS: https://podcasts.files.bbci.co.uk/b006qykl.rss
+19. The Spy Who
+   RSS: https://rss.art19.com/the-spy-who
+20. Real Survival Stories
+   RSS: https://feeds.megaphone.fm/realsurvivalstories
+21. Legacy
+   RSS: https://feeds.acast.com/public/shows/68e4c0be965488b63a6987c5
+22. Cautionary Tales with Tim Harford
+   RSS: https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/c0ae8c6e-22f0-4e9b-ac1c-ae390037ac53/7f5a4714-6b10-4ccf-a424-ae390037ac70/podcast.rss
+23. Real Dictators
+   RSS: https://feeds.megaphone.fm/NSR6187882468
+24. American Scandal
+   RSS: https://rss.art19.com/american-scandal
+25. This is History: A Dynasty to Die For
+   RSS: https://rss.pdrl.fm/5858fc/feeds.megaphone.fm/thisishistory
+
+=== Music ===
+1. Sidetracked with Annie and Nick
+   RSS: https://podcasts.files.bbci.co.uk/p0gfmzbn.rss
+2. Defected Radio
+   RSS: https://portal-api.thisisdistorted.com/xml/defected-in-the-house
+3. The Joe Budden Podcast
+   RSS: https://rss.libsyn.com/shows/128607/destinations/2422538.xml
+4. Word In Your Ear
+   RSS: https://feeds.acast.com/public/shows/5ff0586154e2a73589267809
+5. Nothing Is Real - A Beatles Podcast
+   RSS: https://feeds.acast.com/public/shows/aca9e457-8a66-5073-a0ac-f3f7c3b1f11c
+6. A History of Rock Music in 500 Songs
+   RSS: https://500songs.com/feed/podcast/a-history-of-rock-music-in-500-songs/
+7. Rockonteurs with Gary Kemp and Guy Pratt
+   RSS: https://feeds.acast.com/public/shows/06ba5dd1-7422-510b-b701-fa5d61195372
+8. Cafe Mambo Ibiza - Mambo Radio
+   RSS: https://cafemamboibiza.podtree.com/feed/podcast/
+9. Pure Trance Radio Podcast with Solarstone
+   RSS: http://feeds.thisisdistorted.com/xml/pure-trance-radio-podcast-with-solarstone
+10. CLUBLIFE
+   RSS: https://feeds.acast.com/public/shows/593eded1acfa040562f3480b
+11. Ten To The Top
+   RSS: https://podcasts.files.bbci.co.uk/p06q6h18.rss
+12. All About The Music
+   RSS: https://feeds.captivate.fm/all-about-the-music/
+13. Adam Beyer presents Drumcode
+   RSS: https://drumcode.libsyn.com/rss
+14. Chicane Presents Sun:Sets
+   RSS: http://portal-api.thisisdistorted.com/xml/chicane-presents-sun-sets
+15. Private Passions
+   RSS: https://podcasts.files.bbci.co.uk/b006tnv3.rss
+16. Song Exploder
+   RSS: https://feed.songexploder.net/SongExploder
+17. Oh Gatekeeper with Joe Talbot
+   RSS: https://audioboom.com/channels/5158211.rss
+18. One Song
+   RSS: https://feeds.megaphone.fm/IMP6296096176
+19. 2 Promoters, 1 Pod
+   RSS: https://rss.buzzsprout.com/1275875.rss
+20. Let There Be House
+   RSS: https://feeds.acast.com/public/shows/5d0a6e707759114c1b3267c1
+21. Add to Playlist
+   RSS: https://podcasts.files.bbci.co.uk/m00106lb.rss
+22. New Rory & MAL
+   RSS: https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/5dc96576-96a9-4daf-96ec-b28800fcf0bd/ea74c34e-b3df-4cc3-97fb-b28800fcf0d2/podcast.rss
+23. Toolroom Radio
+   RSS: https://portal-api.thisisdistorted.com/xml/toolroom-radio
+24. JUDGE JULES PRESENTS THE GLOBAL WARM UP
+   RSS: https://judgejules.podomatic.com/rss2.xml
+25. Folk on Foot
+   RSS: https://feeds.acast.com/public/shows/66200129e1b2a400121801b1
+
+=== Personal Development ===
+1. The Mel Robbins Podcast
+   RSS: https://feeds.simplecast.com/UCwaTX1J
+2. Begin Again with Davina McCall
+   RSS: https://feeds.megaphone.fm/beginagain
+3. The Rich Roll Podcast
+   RSS: https://feeds.megaphone.fm/the-rich-roll-podcast
+4. The Calm Christmas Podcast with Beth Kempton
+   RSS: https://api.substack.com/feed/podcast/2906517.rss
+5. anything goes with emma chamberlain
+   RSS: https://feeds.megaphone.fm/stupid-genius
+6. Finding Freedom with Peter Crone
+   RSS: https://app.kajabi.com/podcasts/2147994095/feed
+7. The Digital Sisterhood
+   RSS: https://feeds.megaphone.fm/NEXTBFZ9418844130
+8. Law of Attraction Changed My Life
+   RSS: https://feeds.acast.com/public/shows/651bfc111a0dfa0011e0c9ee
+9. IMO with Michelle Obama and Craig Robinson
+   RSS: https://rss.art19.com/hga-imo
+10. The Jefferson Fisher Podcast
+   RSS: https://feeds.megaphone.fm/CIVILITYMEDIALLC9599576334
+11. LATE BLOOMERS
+   RSS: https://audioboom.com/channels/5146568.rss
+12. The Humans vs Retirement Podcast
+   RSS: https://rss.libsyn.com/shows/463491/destinations/3913200.xml
+13. The Money To The Masses Podcast
+   RSS: https://anchor.fm/s/fe33a85c/podcast/rss
+14. Know Thyself
+   RSS: https://anchor.fm/s/dd622f68/podcast/rss
+15. Aware and Aggravated
+   RSS: https://audioboom.com/channels/5148285.rss
+16. The Daily Motivation
+   RSS: https://feeds.simplecast.com/fFPK3rs_
+17. How to Be a Better Human
+   RSS: https://feeds.acast.com/public/shows/67572b3b2dd88df13220eb3b
+18. SOLVED with Mark Manson
+   RSS: https://feeds.megaphone.fm/ISML9402684841
+19. The Florence Given Show
+   RSS: https://rss.art19.com/the-florence-given-show
+20. The Sabrina Zohar Show
+   RSS: https://audioboom.com/channels/5114394.rss
+21. The Wellness Way
+   RSS: https://anchor.fm/s/f3a5ebd4/podcast/rss
+22. ‌BPLUS بی‌پلاس پادکست فارسی خلاصه کتاب
+   RSS: https://feeds.acast.com/public/shows/65417dfc6143f1001280fb90
+23. Shine In & Out - Where Science Meets Soul
+   RSS: https://feed.podbean.com/shineinandout/feed.xml
+24. Every Cloud
+   RSS: https://feeds.acast.com/public/shows/68cae05ddc62f0e1d6230933
+25. جافکری | Jafekri
+   RSS: https://feeds.acast.com/public/shows/66556d86a8e5c200126c6fac
+
+=== Philosophy ===
+1. The Shawn Ryan Show
+   RSS: https://rss.pdrl.fm/55dc8e/feeds.megaphone.fm/WWO7410387571
+2. Within Reason
+   RSS: https://anchor.fm/s/10a220e88/podcast/rss
+3. Philosophize This!
+   RSS: https://feeds.megaphone.fm/QCD6036500916
+4. everybody has a secret
+   RSS: https://feeds.megaphone.fm/ASEMS8895807375
+5. Alan Watts Being in the Way
+   RSS: https://rss.art19.com/being-in-the-way
+6. Dear Hank & John
+   RSS: https://rss.art19.com/dear-hank-john
+7. Philosophy Bites
+   RSS: https://rss.libsyn.com/shows/18828/destinations/14010.xml
+8. The Art of Manliness
+   RSS: https://rss.art19.com/the-art-of-manliness
+9. Conversations With Coleman
+   RSS: https://feeds.megaphone.fm/RUNMED8938522838
+10. Theories of the Third Kind
+   RSS: https://feeds.megaphone.fm/WWO7970459882
+11. Philosophy For Our Times
+   RSS: https://rss.art19.com/philosophy-for-our-times
+12. Conspirituality
+   RSS: https://feeds.megaphone.fm/GLSS1122389842
+13. The Gray Area with Sean Illing
+   RSS: https://feeds.megaphone.fm/theezrakleinshow
+14. Very Bad Wizards
+   RSS: https://rss.libsyn.com/shows/474285/destinations/4022211.xml
+15. Living Myth
+   RSS: https://rss.libsyn.com/shows/89389/destinations/441422.xml
+16. Inherited
+   RSS: https://feeds.megaphone.fm/ASEMS5638296309
+17. History of Philosophy Without Any Gaps
+   RSS: https://feed.podbean.com/hopwag/feed.xml
+18. Overthink
+   RSS: https://rss.pdrl.fm/a67908/rss.art19.com/overthink
+19. The Partially Examined Life Philosophy Podcast
+   RSS: https://partiallyexaminedlife.libsyn.com/rss
+20. Acid Horizon
+   RSS: https://rss.buzzsprout.com/1064269.rss
+21. Chilling True Tales - True Ghost and Paranormal Stories
+   RSS: https://feeds.redcircle.com/d1a20da7-9749-408c-b3b3-b6690c8bb2db
+22. Cult of Conspiracy
+   RSS: https://www.spreaker.com/show/5700337/episodes/feed
+23. My Family Thinks I'm Crazy
+   RSS: https://feeds.redcircle.com/b6bbfc07-82fc-4cd1-b73c-0fdc550bfedc
+24. The Thomistic Institute
+   RSS: https://feeds.cohostpodcasting.com/8dluqp75
+25. Conversations in Philosophy
+   RSS: https://feeds.megaphone.fm/conversationsinphilosophy
+
+=== Politics ===
+1. The Rest Is Politics
+   RSS: https://feeds.megaphone.fm/GLT9190936013
+2. The Rest Is Politics: US
+   RSS: https://feeds.megaphone.fm/GLT5336643697
+3. Newscast
+   RSS: https://podcasts.files.bbci.co.uk/p05299nl.rss
+4. Political Currency
+   RSS: https://feeds.acast.com/public/shows/64fb2b0f977e5a001226cb16
+5. The Rest Is Money
+   RSS: https://feeds.megaphone.fm/therestismoney
+6. The News Agents - USA
+   RSS: https://feeds.captivate.fm/the-news-agents-usa-podcast/
+7. Americast
+   RSS: https://podcasts.files.bbci.co.uk/p07h19zz.rss
+8. The Rest Is Politics: Leading
+   RSS: https://feeds.megaphone.fm/GLT9029505120
+9. TRIGGERnometry
+   RSS: https://feeds.megaphone.fm/AALT9618167458
+10. Politics At Sam and Anne's
+   RSS: https://feeds.captivate.fm/politics-at-sam-and-anne/
+11. Politics Weekly UK
+   RSS: https://www.theguardian.com/politics/series/politicsweekly/podcast.xml
+12. Daily Politics from the New Statesman
+   RSS: https://feeds.acast.com/public/shows/6b2fc9ba-b9b7-4b7a-b980-e0024facd926
+13. Pod Save America
+   RSS: https://feeds.simplecast.com/dxZsm5kX
+14. TRUMP100
+   RSS: https://feeds.captivate.fm/trump100/
+15. Pod Save the UK
+   RSS: https://feeds.megaphone.fm/CROOKEDMEDIAINC1721577053
+16. The Trawl
+   RSS: https://feeds.acast.com/public/shows/68a837db718453410e2b6f06
+17. Politics Unpacked
+   RSS: https://feeds.acast.com/public/shows/92a301e1-443b-435f-b4e2-2e2dd1e37fc5
+18. The MeidasTouch Podcast
+   RSS: https://feeds.megaphone.fm/PDR2572281095
+19. The Bunker – News without the nonsense
+   RSS: https://feeds.megaphone.fm/PMO4442523498
+20. Quiet Riot
+   RSS: https://feeds.megaphone.fm/quietriot
+21. Bold Politics with Zack Polanski
+   RSS: https://feeds.acast.com/public/shows/68b709d1a742b7c846de24b5
+22. The Bulwark Podcast
+   RSS: https://audioboom.com/channels/5114286.rss
+23. When It Hits the Fan
+   RSS: https://podcasts.files.bbci.co.uk/m001q6gr.rss
+24. Pod Save the World
+   RSS: https://feeds.simplecast.com/AeLYwXNc
+25. Novara Live
+   RSS: https://feeds.podcastmirror.com/tyskysour
+
+=== Relationships ===
+1. We Need To Talk with Paul C. Brunson
+   RSS: https://feeds.megaphone.fm/weneedtotalk
+2. The Girls Bathroom
+   RSS: https://feeds.acast.com/public/shows/bd38ad29-6b25-4be0-8796-a310aded9b55
+3. The Affair…with Anna Williamson
+   RSS: https://audioboom.com/channels/5151718.rss
+4. Nip, Tuck, Not Giving A...
+   RSS: https://feeds.acast.com/public/shows/62bda0af9dc93b0013e79772
+5. Wednesdays
+   RSS: https://feeds.acast.com/public/shows/75c231c4-4998-414d-837e-991ec333e7c5
+6. Single Ladies In Your Area
+   RSS: https://feeds.acast.com/public/shows/66d6edc291ae4d209b1d4826
+7. The Viall Files
+   RSS: https://rss.libsyn.com/shows/455667/destinations/3834246.xml
+8. Flesh and Code
+   RSS: https://rss.art19.com/flesh-and-code
+9. We Can Do Hard Things
+   RSS: https://feeds.megaphone.fm/wcdht
+10. If I Speak
+   RSS: https://feeds.podcastmirror.com/if-i-speak
+11. Mark Narrations - Reddit Stories
+   RSS: https://feeds.acast.com/public/shows/6074695893c968141d1f95bf
+12. Jillian on Love
+   RSS: https://feeds.megaphone.fm/QCD9197519710
+13. Love Life With Matthew Hussey
+   RSS: https://feeds.acast.com/public/shows/68bee481b494ca82a27a3434
+14. Uncut and Uncensored with Caroline Stanbury
+   RSS: https://anchor.fm/s/108d000bc/podcast/rss
+15. Conversations
+   RSS: https://www.abc.net.au/feeds/7711104/podcast.xml
+16. Life Uncut
+   RSS: https://www.omnycontent.com/d/playlist/fa326977-3de5-4283-9b8b-af3500c58607/dec0c092-3a48-47f0-8bc0-af4600179585/a9bb4d1f-3895-4543-b00e-af4600179598/podcast.rss
+17. U Up?
+   RSS: https://feeds.megaphone.fm/BMLLC5715529650
+18. On Attachment
+   RSS: https://anchor.fm/s/10aff67c4/podcast/rss
+19. The Dating Detectives
+   RSS: https://rss.art19.com/the-dating-detectives
+20. Am I the Jerk?
+   RSS: https://feeds.megaphone.fm/amithejerk
+21. Unlocking Us with Brené Brown
+   RSS: https://feeds.megaphone.fm/GLT4889391284
+22. Let's Be Honest with Kristin Cavallari
+   RSS: https://rss.art19.com/lets-be-honest-with-kristin-cavallari
+23. Redditor
+   RSS: https://feeds.acast.com/public/shows/5eb4dd61e0593d026d8e639a
+24. Relatively Blonde
+   RSS: https://anchor.fm/s/fc9855ec/podcast/rss
+25. Love Strategies: Dating and Love Advice for Successful Women
+   RSS: https://rss.buzzsprout.com/2046109.rss
+
+=== Science ===
+1. Something You Should Know
+   RSS: https://rss.pdrl.fm/60a606/feeds.megaphone.fm/WWO9761275037
+2. Hidden Brain
+   RSS: https://feeds.simplecast.com/kwWc0lhf
+3. The Rest Is Science
+   RSS: https://feeds.megaphone.fm/GLT6907573392
+4. Radiolab
+   RSS: https://feeds.simplecast.com/EmVW7VGp
+5. Ologies with Alie Ward
+   RSS: https://feeds.simplecast.com/FO6kxYGj
+6. StarTalk Radio
+   RSS: https://www.omnycontent.com/d/playlist/7bc69dcc-9c03-42ec-a556-a62500d420ca/6bc1c172-0e72-4cf0-93f7-ac4d007c9f59/21f9ecb0-b172-4e1f-8b51-ac4d007d5262/podcast.rss
+7. Big Ideas Lab
+   RSS: https://feeds.simplecast.com/WfThhbae
+8. Science Friday
+   RSS: https://feeds.simplecast.com/h18ZIZD_
+9. Making Sense with Sam Harris
+   RSS: https://rss.libsyn.com/shows/94577/destinations/480596.xml
+10. Operation Night Cat
+   RSS: https://feeds.megaphone.fm/TPG5446308633
+11. Science Vs
+   RSS: https://feeds.megaphone.fm/sciencevs
+12. Short Wave
+   RSS: https://feeds.npr.org/510351/podcast.xml
+13. Blurry Creatures
+   RSS: https://rss.pdrl.fm/6f2cf2/feeds.megaphone.fm/blurrycreatures
+14. Sasquatch Chronicles
+   RSS: https://rss.libsyn.com/shows/268889/destinations/2049179.xml
+15. The Nature Of with Willow Defebaugh
+   RSS: https://feeds.simplecast.com/kjVlTFLO
+16. Particles of Thought
+   RSS: https://publicfeeds.net/f/322/particlesofthought/feed-rss.xml
+17. Boring History for Sleep
+   RSS: https://anchor.fm/s/104e3eb08/podcast/rss
+18. DarkHorse Podcast
+   RSS: https://rss.buzzsprout.com/424075.rss
+19. This Podcast Will Kill You
+   RSS: https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/e0709a39-232b-4483-8e4f-b24c0111ae2c/64b4c224-562e-4b2f-9f31-b24c0111ae53/podcast.rss
+20. The Infinite Monkey Cage
+   RSS: https://podcasts.files.bbci.co.uk/b00snr0w.rss
+21. Tooth & Claw: True Stories of Animal Attacks
+   RSS: https://feeds.megaphone.fm/QCD9705695442
+22. WEAPONIZED with Jeremy Corbell & George Knapp
+   RSS: https://rss.pdrl.fm/b5f56f/feeds.megaphone.fm/weaponized
+23. Sean Carroll's Mindscape: Science, Society, Philosophy, Culture, Arts, and Ideas
+   RSS: https://rss.art19.com/sean-carrolls-mindscape
+24. Unexplainable
+   RSS: https://feeds.megaphone.fm/VMP9331026707
+25. Daniel and Kelly’s Extraordinary Universe
+   RSS: https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/f5d5fac6-77be-47e6-9aee-ae32006cd8c3/b26cbbeb-86eb-4b97-9b34-ae32006cd8d6/podcast.rss
+
+=== Technology ===
+1. Acquired
+   RSS: https://feeds.transistor.fm/acquired
+2. Dwarkesh Podcast
+   RSS: https://apple.dwarkesh-podcast.workers.dev/feed.rss
+3. All-In with Chamath, Jason, Sacks & Friedberg
+   RSS: https://rss.libsyn.com/shows/254861/destinations/1928300.xml
+4. Search Engine
+   RSS: https://feeds.megaphone.fm/search-engine
+5. Lex Fridman Podcast
+   RSS: https://lexfridman.com/feed/podcast/
+6. FT Tech Tonic
+   RSS: https://feeds.acast.com/public/shows/125ef5a6-6c61-4024-b70e-3487a971a26c
+7. The AI Daily Brief: Artificial Intelligence News and Analysis
+   RSS: https://anchor.fm/s/f7cac464/podcast/rss
+8. Hard Fork
+   RSS: https://feeds.simplecast.com/6HKOhNgS
+9. Waveform: The MKBHD Podcast
+   RSS: https://feeds.megaphone.fm/STU4418364045
+10. The Next Five
+   RSS: https://feeds.acast.com/public/shows/ee799abc-ab7d-455c-87e3-98b4462eadfe
+11. Darknet Diaries
+   RSS: https://podcast.darknetdiaries.com
+12. a16z Podcast
+   RSS: https://feeds.simplecast.com/JGE3yC0V
+13. No Ordinary Tech Podcast
+   RSS: https://rss.buzzsprout.com/2215038.rss
+14. The Vergecast
+   RSS: https://feeds.megaphone.fm/vergecast
+15. Better Offline
+   RSS: https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/cf0c25ad-cf01-4da5-ae1c-b0fc015f790e/53ed270b-7147-4f70-81c2-b0fc015fe4ed/podcast.rss
+16. AI Haven't A Clue
+   RSS: https://rss.podplaystudio.com/3498.xml
+17. American Alchemy
+   RSS: https://rss.pdrl.fm/d763df/feeds.megaphone.fm/jessemichels
+18. Well There‘s Your Problem
+   RSS: https://feed.podbean.com/wtyppod/feed.xml
+19. The Last Invention
+   RSS: https://feeds.megaphone.fm/thelastinvention
+20. Shell Game
+   RSS: https://www.omnycontent.com/d/playlist/e73c998e-6e60-432f-8610-ae210140c5b1/d3d3abca-191a-4010-8160-b3530112d393/c639b22c-ee8c-43dd-86c1-b3530112d3a3/podcast.rss
+21. MacBreak Weekly (Audio)
+   RSS: https://feeds.twit.tv/mbw.xml
+22. Lenny's Podcast: Product | Career | Growth
+   RSS: https://api.substack.com/feed/podcast/10845.rss
+23. Triple Click
+   RSS: https://feeds.simplecast.com/6WD3bDj7
+24. Security Now (Audio)
+   RSS: https://feeds.twit.tv/sn.xml
+25. What Bitcoin Did
+   RSS: https://feeds.fountain.fm/UZSKQcrOnhqYS1JopxGg
+

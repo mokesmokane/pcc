@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { format, parseISO } from 'date-fns';
+import { AvatarStack } from '../AvatarStack';
 
 interface MeetupCardProps {
   id: string;
@@ -75,23 +76,17 @@ export function MeetupCard({
           </View>
 
           <View style={styles.attendeesContainer}>
-            {attendees.length > 0 && (
-              <View style={styles.avatarsContainer}>
-                {attendees.slice(0, 6).map((attendee, index) => (
-                  <Image
-                    key={attendee.user_id}
-                    source={{ uri: attendee.avatar_url || `https://ui-avatars.com/api/?name=${attendee.username || 'User'}&background=E05F4E&color=fff` }}
-                    style={[
-                      styles.avatar,
-                      {
-                        marginLeft: index === 0 ? 0 : -12,
-                        zIndex: 6 - index,
-                      },
-                    ]}
-                  />
-                ))}
-              </View>
-            )}
+            <AvatarStack
+              members={attendees.map(a => ({
+                id: a.user_id,
+                avatar: a.avatar_url,
+                name: a.username
+              }))}
+              totalCount={attendeeCount}
+              maxDisplay={6}
+              size="medium"
+              showPlaceholders={false}
+            />
             <Text style={styles.attendeesText}>
               {attendeeCount} attending
               {userStatus === 'waitlist' && ' (waitlist)'}
@@ -176,17 +171,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
-  },
-  avatarsContainer: {
-    flexDirection: 'row',
-    marginRight: 8,
-  },
-  avatar: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+    gap: 8,
   },
   attendeesText: {
     fontSize: 13,

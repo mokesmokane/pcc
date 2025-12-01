@@ -29,10 +29,11 @@ interface WeeklySelectionsContextType {
   userChoice: WeeklyPodcast | null;
   userChoices: WeeklyPodcast[];
   userChoiceLoaded: boolean;
-  selectEpisode: (episodeId: string) => Promise<boolean>;
+  selectEpisode: (episodeId: string, podcast?: WeeklyPodcast) => Promise<boolean>;
   refreshSelections: () => Promise<void>;
   getEpisodeMemberCount: (episodeId: string) => Promise<number>;
   clearUserChoice: () => void;
+  addToSelections: (podcast: WeeklyPodcast) => void;
 }
 
 const WeeklySelectionsContext = createContext<WeeklySelectionsContextType | undefined>(undefined);
@@ -52,35 +53,7 @@ export const WeeklySelectionsProvider: React.FC<WeeklySelectionsProviderProps> =
   const [userChoices, setUserChoices] = useState<WeeklyPodcast[]>([]);
   const [userChoiceLoaded, setUserChoiceLoaded] = useState(false);
 
-  // Convert WeeklySelection model to WeeklyPodcast format
-  const transformSelections = async (dbSelections: WeeklySelection[]): Promise<WeeklyPodcast[]> => {
-    const transformed = await Promise.all(dbSelections.map(async selection => {
-      // Fetch episode details if available
-      const details = await episodeDetailsRepository.getEpisodeDetails(selection.episodeId);
-
-      // All data is now directly on the selection model
-      return {
-        id: selection.episodeId,
-        category: selection.category || 'podcast',
-        categoryLabel: getCategoryLabel(selection.category || 'podcast'),
-        title: selection.podcastTitle || 'Unknown Podcast',
-        source: selection.episodeTitle || 'Unknown Episode',
-        clubMembers: 0, // Will be updated with getEpisodeMemberCount
-        progress: 0,
-        duration: formatDuration(selection.duration || 0),
-        durationSeconds: selection.duration || 0,
-        episode: selection.episodeTitle || 'Unknown Episode',
-        image: selection.artworkUrl || undefined,
-        audioUrl: selection.audioUrl,
-        description: selection.episodeDescription,
-        about: details?.about,
-        whyWeLoveIt: details?.whyWeLoveIt,
-      };
-    }));
-
-    return transformed;
-  };
-
+  // Helper functions (defined before transformSelections which uses them)
   const getCategoryLabel = (category: string): string => {
     const labels: Record<string, string> = {
       'comedy': 'Comedy',
@@ -94,14 +67,62 @@ export const WeeklySelectionsProvider: React.FC<WeeklySelectionsProviderProps> =
     return labels[category] || category;
   };
 
+  const decodeHtmlEntities = (text: string): string => {
+    if (!text) return text;
+    return text
+      .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(dec))
+      .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&apos;/g, "'")
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&rsquo;/g, "'")
+      .replace(/&lsquo;/g, "'")
+      .replace(/&rdquo;/g, '"')
+      .replace(/&ldquo;/g, '"')
+      .replace(/&mdash;/g, '—')
+      .replace(/&ndash;/g, '–')
+      .replace(/&hellip;/g, '…');
+  };
+
   const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
-
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     }
     return `${minutes}m`;
+  };
+
+  // Convert WeeklySelection model to WeeklyPodcast format
+  const transformSelections = async (dbSelections: WeeklySelection[]): Promise<WeeklyPodcast[]> => {
+    const transformed = await Promise.all(dbSelections.map(async selection => {
+      // Fetch episode details if available
+      const details = await episodeDetailsRepository.getEpisodeDetails(selection.episodeId);
+
+      // All data is now directly on the selection model (decode HTML entities)
+      return {
+        id: selection.episodeId,
+        category: selection.category || 'podcast',
+        categoryLabel: getCategoryLabel(selection.category || 'podcast'),
+        title: decodeHtmlEntities(selection.podcastTitle || 'Unknown Podcast'),
+        source: decodeHtmlEntities(selection.episodeTitle || 'Unknown Episode'),
+        clubMembers: 0, // Will be updated with getEpisodeMemberCount
+        progress: 0,
+        duration: formatDuration(selection.duration || 0),
+        durationSeconds: selection.duration || 0,
+        episode: decodeHtmlEntities(selection.episodeTitle || 'Unknown Episode'),
+        image: selection.artworkUrl || undefined,
+        audioUrl: selection.audioUrl,
+        description: decodeHtmlEntities(selection.episodeDescription || ''),
+        about: decodeHtmlEntities(details?.about || ''),
+        whyWeLoveIt: decodeHtmlEntities(details?.whyWeLoveIt || ''),
+      };
+    }));
+
+    return transformed;
   };
 
   const loadSelections = async () => {
@@ -158,7 +179,7 @@ export const WeeklySelectionsProvider: React.FC<WeeklySelectionsProviderProps> =
     }
   };
 
-  const selectEpisode = async (episodeId: string): Promise<boolean> => {
+  const selectEpisode = async (episodeId: string, podcast?: WeeklyPodcast): Promise<boolean> => {
     if (!user?.id) {
       console.error('User not authenticated');
       return false;
@@ -167,7 +188,8 @@ export const WeeklySelectionsProvider: React.FC<WeeklySelectionsProviderProps> =
     try {
       const success = await weeklySelectionRepository.saveUserWeeklyChoice(user.id, episodeId);
       if (success) {
-        const selectedPodcast = selections.get(episodeId) || null;
+        // Use provided podcast (for wildcards) or get from selections
+        const selectedPodcast = podcast || selections.get(episodeId) || null;
         setUserChoice(selectedPodcast);
 
         // Add to userChoices if not already present
@@ -214,6 +236,15 @@ export const WeeklySelectionsProvider: React.FC<WeeklySelectionsProviderProps> =
     setUserChoice(null);
     // Note: This only clears the local state, not the database
     // If you want to also clear from database, you'd need to add a method in the repository
+  };
+
+  // Add a podcast to selections (used for wildcard episodes)
+  const addToSelections = (podcast: WeeklyPodcast) => {
+    setSelections(prev => {
+      const newMap = new Map(prev);
+      newMap.set(podcast.id, podcast);
+      return newMap;
+    });
   };
 
   // Load selections on mount and when user changes
@@ -277,6 +308,7 @@ export const WeeklySelectionsProvider: React.FC<WeeklySelectionsProviderProps> =
       refreshSelections,
       getEpisodeMemberCount,
       clearUserChoice,
+      addToSelections,
     }),
     [selections, loading, error, userChoice, userChoices, userChoiceLoaded]
   );

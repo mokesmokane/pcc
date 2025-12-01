@@ -19,14 +19,23 @@ interface MemberInfoProps {
   isFriend?: boolean;
 }
 
+// Generate DiceBear avatar URL
+const getDiceBearAvatar = (seed: string) => {
+  const encodedSeed = encodeURIComponent(seed);
+  return `https://api.dicebear.com/7.x/avataaars/png?seed=${encodedSeed}&backgroundColor=f4f1ed`;
+};
+
 export function MemberInfo({ member, onPress, isFriend = false }: MemberInfoProps) {
   const isCompleted = member.progress >= 95;
   const isGhost = member.progress < 5 && !member.lastActivity.includes('now') && !member.lastActivity.includes('min');
 
+  // Use provided avatar, or generate one based on member id
+  const avatarUrl = member.avatar || getDiceBearAvatar(member.id);
+
   return (
     <TouchableOpacity style={styles.memberItem} onPress={onPress} disabled={!onPress}>
       <View style={styles.avatarContainer}>
-        <Image source={{ uri: member.avatar || 'https://i.pravatar.cc/150' }} style={styles.avatar} />
+        <Image source={{ uri: avatarUrl }} style={styles.avatar} />
         {isFriend && (
           <View style={styles.friendBadge}>
             <Ionicons name="people" size={12} color="#FFFFFF" />

@@ -5,18 +5,18 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MiniPlayer } from '../components/player/MiniPlayer';
 import { ProfileMenu } from '../components/ProfileMenu';
-import { InviteFriendsModal } from '../components/InviteFriendsModal';
 import { NotificationsModal } from '../components/NotificationsModal';
 import { useIsPlaying, usePlaybackControls, useCurrentTrack } from '../stores/audioStore.hooks';
 import { useAuth } from '../contexts/AuthContext';
 import { useCurrentProfile } from '../hooks/queries/useProfile';
 import { useNotifications } from '../contexts/NotificationsContext';
+import { useWeeklySelections } from '../contexts/WeeklySelectionsContext';
+import { inviteService } from '../services/invite.service';
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showInviteModal, setShowInviteModal] = useState(false);
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const { user } = useAuth();
   const { data: profile } = useCurrentProfile();
@@ -24,6 +24,7 @@ export default function TabLayout() {
   const isPlaying = useIsPlaying();
   const { play, pause, skipBackward } = usePlaybackControls();
   const { currentTrack, position, duration } = useCurrentTrack();
+  const { userChoice } = useWeeklySelections();
 
   return (
     <>
@@ -47,14 +48,17 @@ export default function TabLayout() {
           header: () => (
             <SafeAreaView style={styles.headerContainer} edges={['top']}>
               <View style={styles.header}>
-                <TouchableOpacity style={styles.iconButton}>
+                <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/create-club')}>
                   <Ionicons name="add-circle-outline" size={28} color="#403837" />
                 </TouchableOpacity>
 
                 <View style={styles.rightSection}>
                   <TouchableOpacity
                     style={styles.inviteButton}
-                    onPress={() => setShowInviteModal(true)}
+                    onPress={() => {
+                      const message = inviteService.generateInviteMessage(profile?.firstName);
+                      inviteService.shareInvite(message);
+                    }}
                   >
                     <Text style={styles.inviteButtonText}>Invite friends</Text>
                   </TouchableOpacity>
@@ -84,7 +88,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="home"
           options={{
-            title: 'Home',
+            title: 'Clubs',
             tabBarIcon: ({ color, size, focused }) => (
               <View style={styles.tabIconContainer}>
                 {focused && <View style={styles.activeIndicator} />}
@@ -106,6 +110,18 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="podcasts"
+          options={{
+            title: 'Podcasts',
+            tabBarIcon: ({ color, size, focused }) => (
+              <View style={styles.tabIconContainer}>
+                {focused && <View style={styles.activeIndicator} />}
+                <Ionicons name="grid-outline" size={size} color={color} />
+              </View>
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="history"
           options={{
             title: 'History',
@@ -119,8 +135,8 @@ export default function TabLayout() {
         />
       </Tabs>
 
-      {/* MiniPlayer - positioned above tab bar */}
-      {currentTrack && (
+      {/* MiniPlayer - positioned above tab bar, hidden during weekly selection */}
+      {currentTrack && userChoice && (
         <View style={[styles.miniPlayerContainer, { bottom: 70 + insets.bottom}]}>
           <MiniPlayer
             title={currentTrack.title}
@@ -159,11 +175,6 @@ export default function TabLayout() {
         visible={showProfileMenu}
         onClose={() => setShowProfileMenu(false)}
         userName={profile?.firstName || user?.email || 'User'}
-      />
-
-      <InviteFriendsModal
-        visible={showInviteModal}
-        onClose={() => setShowInviteModal(false)}
       />
 
       <NotificationsModal

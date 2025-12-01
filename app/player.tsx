@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Alert, Animated, ScrollView, StatusBar, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Player } from './components/player/Player';
+import { AboutSection } from './components/player/AboutSection';
 import { ChaptersSection } from './components/player/ChaptersSection';
 import { ChaptersSheet } from './components/player/ChaptersSheet';
 import { CommentsSection } from './components/player/CommentsSection';
@@ -340,6 +341,13 @@ export default function PlayerScreen() {
           previewPosition={isPreviewMode ? previewPosition : undefined}
           previewDuration={isPreviewMode ? previewDuration : undefined}
         />
+
+        {/* About Section */}
+        <View style={styles.sectionWrapper}>
+          <AboutSection
+            description={params.trackDescription as string || currentTrack?.description || episodeData?.episode_description}
+          />
+        </View>
 
         {/* Limited Comments Section */}
         <View style={styles.sectionWrapper}>
