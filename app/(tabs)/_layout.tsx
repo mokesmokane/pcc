@@ -124,11 +124,11 @@ export default function TabLayout() {
         <Tabs.Screen
           name="history"
           options={{
-            title: 'History',
+            title: 'Up Next',
             tabBarIcon: ({ color, size, focused }) => (
               <View style={styles.tabIconContainer}>
                 {focused && <View style={styles.activeIndicator} />}
-                <Ionicons name="time-outline" size={size} color={color} />
+                <Ionicons name="list-outline" size={size} color={color} />
               </View>
             ),
           }}

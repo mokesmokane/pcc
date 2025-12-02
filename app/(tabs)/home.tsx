@@ -15,6 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import CurrentPodcastSection from '../components/CurrentPodcastSection';
 import RestOfLineupSection from '../components/RestOfLineupSection';
+import { OlderHistorySection } from '../components/OlderHistorySection';
+import { useHistoryData, type HistoryEpisode } from '../hooks/useHistoryData';
 import { DiscussionFlow } from '../components/DiscussionFlow';
 import { PollReviewAllResults } from '../components/PollReviewAllResults';
 import { useWeeklySelections, type WeeklyPodcast } from '@/contexts/WeeklySelectionsContext';
@@ -41,6 +43,7 @@ export default function HomeScreen() {
   const { currentPodcastId, setCurrentPodcastId } = useCurrentPodcastStore();
   const queryClient = useQueryClient();
   const { meetups, userStatuses, loadMeetups } = useMeetups();
+  const { flatHistory, loading: historyLoading } = useHistoryData({ limit: 6 });
 
   // Get all episode IDs for batch progress loading (memoized to prevent infinite loops)
   const userChoiceIds = useMemo(() => userChoices.map(p => p.id), [userChoices]);
@@ -331,6 +334,20 @@ export default function HomeScreen() {
     }
   };
 
+  const handleHistoryItemPress = (episode: HistoryEpisode) => {
+    router.push({
+      pathname: '/player',
+      params: {
+        trackId: episode.id,
+        trackTitle: episode.episodeTitle,
+        trackArtist: episode.source,
+        trackArtwork: episode.artwork,
+        trackAudioUrl: episode.audioUrl,
+        trackDescription: episode.description,
+      },
+    });
+  };
+
 
   if (!fontsLoaded) {
     return (
@@ -386,6 +403,14 @@ export default function HomeScreen() {
           getProgressForEpisode={getProgressForEpisode}
           getMembersForEpisode={() => []}
         />
+        </View>
+        <View style={styles.sectionWrapper}>
+          <OlderHistorySection
+            historyItems={flatHistory}
+            onItemPress={handleHistoryItemPress}
+            onShowMore={() => router.push('/full-history')}
+            loading={historyLoading}
+          />
         </View>
       </ScrollView>
 
