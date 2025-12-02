@@ -1,15 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useMembers } from '../../contexts/MembersContext';
 import { AvatarStack } from '../AvatarStack';
+import { CircularProgress } from '../CircularProgress';
 
 interface TrackInfoProps {
   title?: string;
   artist?: string;
   isDownloaded: boolean;
   isDownloading: boolean;
+  downloadProgress?: number;
   onDownload: () => void;
   episodeId?: string;
 }
@@ -19,6 +21,7 @@ export function TrackInfo({
   artist = '',
   isDownloaded,
   isDownloading,
+  downloadProgress = 0,
   onDownload,
   episodeId
 }: TrackInfoProps) {
@@ -68,7 +71,7 @@ export function TrackInfo({
           disabled={isDownloading}
         >
           {isDownloading ? (
-            <ActivityIndicator size="small" color="#E05F4E" />
+            <CircularProgress progress={downloadProgress} size={24} strokeWidth={3} />
           ) : (
             <Ionicons
               name={isDownloaded ? "checkmark-circle" : "download-outline"}

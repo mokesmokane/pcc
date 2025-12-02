@@ -7,7 +7,7 @@ import { PlayerHeader } from '../../components/player/PlayerHeader';
 import { PlaybackSpeedModal } from '../../components/player/PlaybackSpeedModal';
 import { SleepTimerModal } from '../../components/player/SleepTimerModal';
 import { useAudioPlayer } from '../../stores/audioStore.hooks';
-import { downloadService } from '../../services/downloadService';
+import { downloadService, useDownloadStore } from '../../services/download/download.service';
 
 export default function TraditionalPlayerScreen() {
   const params = useLocalSearchParams();
@@ -29,6 +29,10 @@ export default function TraditionalPlayerScreen() {
   const [showSleepTimer, setShowSleepTimer] = useState(false);
   const [isDownloaded, setIsDownloaded] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+
+  // Subscribe to download store for progress updates
+  const downloads = useDownloadStore((state) => state.downloads);
 
   // Check if we're in preview mode (viewing an episode that's not currently loaded)
   const isPreviewMode = params.trackId && currentTrack?.id !== params.trackId;
@@ -40,13 +44,33 @@ export default function TraditionalPlayerScreen() {
     const checkDownloadStatus = async () => {
       if (params.trackId || currentTrack?.id) {
         const episodeId = (params.trackId || currentTrack?.id) as string;
-        const downloaded = await downloadService.isEpisodeDownloaded(episodeId);
+        const downloaded = await downloadService.isDownloaded(episodeId);
         setIsDownloaded(downloaded);
       }
     };
 
     checkDownloadStatus();
   }, [params.trackId, currentTrack]);
+
+  // Track download progress from the store
+  useEffect(() => {
+    const episodeId = (params.trackId || currentTrack?.id) as string;
+    if (!episodeId || !isDownloading) return;
+
+    // Find the download for this episode
+    const download = Array.from(downloads.values()).find(d => d.episodeId === episodeId);
+    if (download) {
+      setDownloadProgress(download.progress);
+      if (download.status === 'completed') {
+        setIsDownloading(false);
+        setIsDownloaded(true);
+        setDownloadProgress(0);
+      } else if (download.status === 'error') {
+        setIsDownloading(false);
+        setDownloadProgress(0);
+      }
+    }
+  }, [downloads, params.trackId, currentTrack?.id, isDownloading]);
 
   const handleDownload = async () => {
     const episodeId = (params.trackId || currentTrack?.id) as string;
@@ -71,18 +95,13 @@ export default function TraditionalPlayerScreen() {
         throw new Error('No audio URL available');
       }
 
-      await downloadService.downloadEpisode(
-        episodeId,
-        audioUrl,
-        {
-          title: currentTrack?.title || '',
-          podcast_title: currentTrack?.artist || '',
-          artwork_url: currentTrack?.artwork,
-        },
-        (progress: number) => {
-          console.log('Download progress:', progress);
-        }
-      );
+      await downloadService.queueDownload({
+        id: episodeId,
+        title: currentTrack?.title || '',
+        audioUrl: audioUrl,
+        podcastTitle: currentTrack?.artist || '',
+        artwork: currentTrack?.artwork,
+      });
 
       setIsDownloaded(true);
     } catch (error) {
@@ -144,6 +163,7 @@ export default function TraditionalPlayerScreen() {
           episodeId={params.trackId as string || currentTrack?.id}
           isDownloaded={isDownloaded}
           isDownloading={isDownloading}
+          downloadProgress={downloadProgress}
           onDownload={handleDownload}
           isPlaying={isPlaying && !isPreviewMode}
           playbackRate={playbackRate}

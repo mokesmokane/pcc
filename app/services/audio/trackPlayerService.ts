@@ -1,5 +1,4 @@
 import TrackPlayer, {
-  Event,
   Capability,
   AppKilledPlaybackBehavior,
   RepeatMode,
@@ -108,83 +107,4 @@ export function isPlayerSetup(): boolean {
   return isSetup;
 }
 
-/**
- * Background Playback Service - handles remote control events
- * This is called by TrackPlayer when the app is in the background
- */
-export async function PlaybackService() {
-  // Remote play (from lock screen/notification)
-  TrackPlayer.addEventListener(Event.RemotePlay, () => {
-    console.log('[PlaybackService] Remote Play');
-    TrackPlayer.play();
-  });
-
-  // Remote pause
-  TrackPlayer.addEventListener(Event.RemotePause, () => {
-    console.log('[PlaybackService] Remote Pause');
-    TrackPlayer.pause();
-  });
-
-  // Remote stop
-  TrackPlayer.addEventListener(Event.RemoteStop, () => {
-    console.log('[PlaybackService] Remote Stop');
-    TrackPlayer.stop();
-  });
-
-  // Remote seek
-  TrackPlayer.addEventListener(Event.RemoteSeek, (event) => {
-    console.log('[PlaybackService] Remote Seek to:', event.position);
-    TrackPlayer.seekTo(event.position);
-  });
-
-  // Remote jump forward (30s)
-  TrackPlayer.addEventListener(Event.RemoteJumpForward, async (event) => {
-    const interval = event.interval || 30;
-    const { position } = await TrackPlayer.getProgress();
-    console.log('[PlaybackService] Remote Jump Forward:', interval);
-    await TrackPlayer.seekTo(position + interval);
-  });
-
-  // Remote jump backward (15s)
-  TrackPlayer.addEventListener(Event.RemoteJumpBackward, async (event) => {
-    const interval = event.interval || 15;
-    const { position } = await TrackPlayer.getProgress();
-    console.log('[PlaybackService] Remote Jump Backward:', interval);
-    await TrackPlayer.seekTo(Math.max(0, position - interval));
-  });
-
-  // Remote next track
-  TrackPlayer.addEventListener(Event.RemoteNext, () => {
-    console.log('[PlaybackService] Remote Next');
-    TrackPlayer.skipToNext();
-  });
-
-  // Remote previous track
-  TrackPlayer.addEventListener(Event.RemotePrevious, () => {
-    console.log('[PlaybackService] Remote Previous');
-    TrackPlayer.skipToPrevious();
-  });
-
-  // Handle play/pause toggle (for headphone button)
-  TrackPlayer.addEventListener(Event.RemotePlayPause, async () => {
-    console.log('[PlaybackService] Remote Play/Pause Toggle');
-    const { state } = await TrackPlayer.getPlaybackState();
-    if (state === 'playing') {
-      await TrackPlayer.pause();
-    } else {
-      await TrackPlayer.play();
-    }
-  });
-
-  // Handle audio ducking (phone calls, notifications)
-  TrackPlayer.addEventListener(Event.RemoteDuck, async (event) => {
-    console.log('[PlaybackService] Remote Duck:', event);
-    if (event.paused || event.permanent) {
-      await TrackPlayer.pause();
-    } else if (event.ducking) {
-      // Could reduce volume here if needed
-    }
-  });
-
-  console.log('[PlaybackService] Initialized');
-}
+// PlaybackService moved to ./playbackService.ts to avoid import issues in index.js

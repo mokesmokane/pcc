@@ -16,6 +16,7 @@ interface SeekBarProps {
   disabled?: boolean;
   overridePosition?: number;
   overrideDuration?: number;
+  onSeek?: (position: number) => void;
 }
 
 const formatTime = (seconds: number): string => {
@@ -37,7 +38,8 @@ const formatTime = (seconds: number): string => {
 export const SeekBar: React.FC<SeekBarProps> = ({
   disabled = false,
   overridePosition,
-  overrideDuration
+  overrideDuration,
+  onSeek,
 }) => {
   const { position: audioPosition, duration: audioDuration } = useCurrentTrack();
   const { seekTo } = usePlaybackControls();
@@ -89,7 +91,8 @@ export const SeekBar: React.FC<SeekBarProps> = ({
   // Callbacks for runOnJS
   const handleSeek = useCallback((pos: number) => {
     seekTo(pos);
-  }, [seekTo]);
+    onSeek?.(pos);
+  }, [seekTo, onSeek]);
 
   const setDragIndicator = useCallback((show: boolean) => {
     setShowDragIndicator(show);

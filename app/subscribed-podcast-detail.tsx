@@ -11,20 +11,23 @@ import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useQueue, useCurrentTrackOnly } from './stores/audioStore.hooks';
+import { useCurrentTrackOnly, useQueue } from './stores/audioStore.hooks';
 import { downloadService } from './services/download/download.service';
 import { ConfirmDialog } from './components/ConfirmDialog';
+import {
+  extractArtwork as extractArtworkShared,
+  extractAuthor as extractAuthorShared,
+  parseRSSEpisodes as parseRSSEpisodesShared,
+} from './utils/rss';
 
-const STORAGE_KEY = '@podcast_subscriptions';
-
-interface Podcast {
-  id: string;
-  title: string;
-  artwork: string;
-  feedUrl: string;
-  author?: string;
-}
+// Store hooks
+import {
+  useAddSubscription,
+  useIsSubscribed,
+  useIsTracked,
+  useRemoveSubscription,
+  useToggleTracking,
+} from './stores/subscriptionsStore.hooks';
 
 interface Episode {
   id: string;
@@ -45,9 +48,18 @@ export default function SubscribedPodcastDetailScreen() {
   const { playNext } = useQueue();
   const currentTrack = useCurrentTrackOnly();
 
+  const feedUrl = params.feedUrl as string;
+
+  // Store state (reactive)
+  const isSubscribed = useIsSubscribed(feedUrl);
+  const isTracked = useIsTracked(feedUrl);
+  const addSubscription = useAddSubscription();
+  const removeSubscription = useRemoveSubscription();
+  const toggleTracking = useToggleTracking();
+
+  // Local UI state
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isSubscribed, setIsSubscribed] = useState(false);
   const [showUnsubscribeDialog, setShowUnsubscribeDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [episodeToDelete, setEpisodeToDelete] = useState<Episode | null>(null);
@@ -57,65 +69,29 @@ export default function SubscribedPodcastDetailScreen() {
     author: params.author as string || '',
   });
 
-  const feedUrl = params.feedUrl as string;
-
-  // Check subscription status on mount
-  useEffect(() => {
-    checkSubscriptionStatus();
-  }, [feedUrl]);
-
-  const checkSubscriptionStatus = async () => {
-    try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const subscriptions: Podcast[] = JSON.parse(stored);
-        setIsSubscribed(subscriptions.some(p => p.feedUrl === feedUrl));
-      }
-    } catch (error) {
-      console.error('Error checking subscription status:', error);
-    }
-  };
-
-  const handleSubscribe = async () => {
-    try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      const subscriptions: Podcast[] = stored ? JSON.parse(stored) : [];
-
-      const newPodcast: Podcast = {
-        id: feedUrl,
-        title: podcastInfo.title,
-        artwork: podcastInfo.artwork,
-        feedUrl: feedUrl,
-        author: podcastInfo.author,
-      };
-
-      subscriptions.push(newPodcast);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(subscriptions));
-      setIsSubscribed(true);
-    } catch (error) {
-      console.error('Error subscribing:', error);
-    }
+  const handleSubscribe = () => {
+    addSubscription({
+      id: feedUrl,
+      title: podcastInfo.title,
+      artwork: podcastInfo.artwork,
+      feedUrl,
+      author: podcastInfo.author,
+    });
   };
 
   const handleUnsubscribe = () => {
     setShowUnsubscribeDialog(true);
   };
 
-  const confirmUnsubscribe = async () => {
+  const handleToggleTracking = () => {
+    toggleTracking(feedUrl);
+  };
+
+  const confirmUnsubscribe = () => {
     setShowUnsubscribeDialog(false);
-    try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const subscriptions: Podcast[] = JSON.parse(stored);
-        const filtered = subscriptions.filter(p => p.feedUrl !== feedUrl);
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
-        setIsSubscribed(false);
-        // Go back to the podcasts list
-        router.back();
-      }
-    } catch (error) {
-      console.error('Error unsubscribing:', error);
-    }
+    removeSubscription(feedUrl);
+    // Go back to the podcasts list
+    router.back();
   };
 
   useEffect(() => {
@@ -155,14 +131,25 @@ export default function SubscribedPodcastDetailScreen() {
       const response = await fetch(feedUrl);
       const xmlText = await response.text();
 
-      const parsedEpisodes = parseRSSEpisodes(xmlText);
-      setEpisodes(parsedEpisodes);
+      // Use shared RSS parsing utilities
+      const parsedEpisodes = parseRSSEpisodesShared(xmlText);
+      // Map to local Episode interface
+      const mappedEpisodes: Episode[] = parsedEpisodes.map(ep => ({
+        id: ep.id,
+        title: ep.title,
+        description: ep.description,
+        pubDate: ep.pubDate,
+        duration: ep.duration,
+        durationSeconds: ep.durationSeconds,
+        audioUrl: ep.audioUrl,
+      }));
+      setEpisodes(mappedEpisodes);
 
       setTimeout(() => checkDownloadStatus(), 100);
 
       if (!podcastInfo.artwork) {
-        const artwork = extractArtwork(xmlText);
-        const author = extractAuthor(xmlText);
+        const artwork = extractArtworkShared(xmlText);
+        const author = extractAuthorShared(xmlText);
         setPodcastInfo(prev => ({
           ...prev,
           artwork,
@@ -173,117 +160,6 @@ export default function SubscribedPodcastDetailScreen() {
       console.error('Error fetching episodes:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const extractArtwork = (xmlText: string): string => {
-    const itunesImageMatch = xmlText.match(/<itunes:image[^>]*href="([^"]*)"/i);
-    if (itunesImageMatch) return itunesImageMatch[1];
-
-    const imageMatch = xmlText.match(/<image[^>]*>[\s\S]*?<url>([^<]*)<\/url>/i);
-    if (imageMatch) return imageMatch[1];
-
-    return '';
-  };
-
-  const extractAuthor = (xmlText: string): string => {
-    const authorMatch = xmlText.match(/<itunes:author>([^<]*)<\/itunes:author>/i);
-    return authorMatch ? authorMatch[1] : '';
-  };
-
-  const parseRSSEpisodes = (xmlText: string): Episode[] => {
-    const episodes: Episode[] = [];
-    const itemRegex = /<item>([\s\S]*?)<\/item>/gi;
-    const matches = xmlText.matchAll(itemRegex);
-
-    const cleanCDATA = (text: string): string => {
-      return text.replace(/<!\[CDATA\[(.*?)\]\]>/g, '$1').trim();
-    };
-
-    for (const match of matches) {
-      const itemContent = match[1];
-
-      const titleMatch = itemContent.match(/<title>([\s\S]*?)<\/title>/i);
-      const descMatch = itemContent.match(/<description>([\s\S]*?)<\/description>/i);
-      const enclosureMatch = itemContent.match(/<enclosure[^>]*url="([^"]*)"[^>]*>/i);
-      const pubDateMatch = itemContent.match(/<pubDate>(.*?)<\/pubDate>/i);
-      const durationMatch = itemContent.match(/<itunes:duration>(.*?)<\/itunes:duration>/i);
-      const guidMatch = itemContent.match(/<guid[^>]*>([\s\S]*?)<\/guid>/i);
-
-      if (titleMatch && enclosureMatch) {
-        const rawDuration = durationMatch ? durationMatch[1] : '';
-        const durationSeconds = parseDurationToSeconds(rawDuration);
-        const duration = durationSeconds > 0 ? formatDuration(rawDuration) : '';
-        const pubDate = pubDateMatch ? formatDate(pubDateMatch[1]) : '';
-        const audioUrl = enclosureMatch[1];
-
-        const cleanTitle = cleanCDATA(titleMatch[1]);
-        const cleanDescription = descMatch ? cleanCDATA(descMatch[1]) : '';
-        const cleanGuid = guidMatch ? cleanCDATA(guidMatch[1]) : audioUrl;
-
-        episodes.push({
-          id: cleanGuid,
-          title: cleanTitle,
-          description: cleanDescription,
-          pubDate,
-          duration,
-          durationSeconds,
-          audioUrl,
-        });
-      }
-    }
-
-    return episodes;
-  };
-
-  const parseDurationToSeconds = (duration: string): number => {
-    if (!duration) return 0;
-
-    if (duration.includes(':')) {
-      const parts = duration.split(':').map(p => parseInt(p));
-      if (parts.length === 3) {
-        return parts[0] * 3600 + parts[1] * 60 + parts[2];
-      } else if (parts.length === 2) {
-        return parts[0] * 60 + parts[1];
-      }
-    }
-
-    const seconds = parseInt(duration);
-    return isNaN(seconds) ? 0 : seconds;
-  };
-
-  const formatDuration = (duration: string): string => {
-    if (duration.includes(':')) {
-      return duration;
-    }
-
-    const seconds = parseInt(duration);
-    if (isNaN(seconds)) return '';
-
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${minutes}m`;
-  };
-
-  const formatDate = (dateString: string): string => {
-    try {
-      const date = new Date(dateString);
-      const now = new Date();
-      const diffTime = Math.abs(now.getTime() - date.getTime());
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 0) return 'Today';
-      if (diffDays === 1) return 'Yesterday';
-      if (diffDays < 7) return `${diffDays} days ago`;
-      if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    } catch {
-      return dateString;
     }
   };
 
@@ -448,6 +324,18 @@ export default function SubscribedPodcastDetailScreen() {
             <Ionicons name="chevron-back" size={24} color="#403837" />
           </TouchableOpacity>
           <View style={styles.headerSpacer} />
+          {isSubscribed && (
+            <TouchableOpacity
+              style={[styles.trackButton, isTracked && styles.trackButtonActive]}
+              onPress={handleToggleTracking}
+            >
+              <Ionicons
+                name={isTracked ? 'notifications' : 'notifications-outline'}
+                size={18}
+                color={isTracked ? '#FFFFFF' : '#8B8680'}
+              />
+            </TouchableOpacity>
+          )}
           {isSubscribed ? (
             <TouchableOpacity style={styles.subscribeButton} onPress={handleUnsubscribe}>
               <Ionicons name="checkmark-circle" size={20} color="#E05F4E" />
@@ -662,5 +550,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  trackButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8E5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  trackButtonActive: {
+    backgroundColor: '#E05F4E',
+    borderColor: '#E05F4E',
   },
 });

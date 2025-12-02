@@ -14,6 +14,7 @@ interface PlayerProps {
   // Download state
   isDownloaded: boolean;
   isDownloading: boolean;
+  downloadProgress?: number;
   onDownload: () => void;
 
   // Playback state
@@ -32,6 +33,7 @@ interface PlayerProps {
   // Preview mode (for traditional player)
   previewPosition?: number;
   previewDuration?: number;
+  onSeek?: (position: number) => void;
 }
 
 export function Player({
@@ -41,6 +43,7 @@ export function Player({
   episodeId,
   isDownloaded,
   isDownloading,
+  downloadProgress,
   onDownload,
   isPlaying,
   playbackRate,
@@ -53,6 +56,7 @@ export function Player({
   onDownloadPress,
   previewPosition,
   previewDuration,
+  onSeek,
 }: PlayerProps) {
   return (
     <>
@@ -63,6 +67,7 @@ export function Player({
         artist={artist}
         isDownloaded={isDownloaded}
         isDownloading={isDownloading}
+        downloadProgress={downloadProgress}
         onDownload={onDownload}
         episodeId={episodeId}
       />
@@ -70,6 +75,7 @@ export function Player({
       <SeekBar
         overridePosition={previewPosition}
         overrideDuration={previewDuration}
+        onSeek={onSeek}
       />
 
       <PlaybackControls

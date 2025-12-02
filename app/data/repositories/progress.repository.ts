@@ -62,6 +62,7 @@ export class ProgressRepository extends BaseRepository<UserEpisodeProgress> {
     position: number,
     duration: number
   ): Promise<UserEpisodeProgress> {
+
     // Sanity check: don't save if position > duration (indicates bad data)
     if (duration > 0 && position > duration * 1.1) { // Allow 10% buffer for rounding
       console.warn(`[ProgressRepository] Rejecting invalid progress: position (${position}) > duration (${duration}) for episode ${episodeId}`);
@@ -80,6 +81,12 @@ export class ProgressRepository extends BaseRepository<UserEpisodeProgress> {
       // Update existing progress
       // Don't overwrite a valid duration with 0 - keep existing if new duration is invalid
       const effectiveDuration = duration > 0 ? duration : existing.totalDuration;
+
+      // IMPORTANT: Don't overwrite real progress with 0!
+      // This happens when periodic save fires before seek completes on track change
+      if (position === 0 && existing.currentPosition > 10) {
+        return existing;
+      }
 
       // Keep completed flag sticky - once completed, stay completed (for "listen again" feature)
       const isNowComplete = effectiveDuration > 0 && position >= effectiveDuration * 0.95;
@@ -235,6 +242,58 @@ export class ProgressRepository extends BaseRepository<UserEpisodeProgress> {
     }
   }
 
+  /**
+   * Clean up duplicate progress records (keep the one with highest position)
+   * This fixes a bug where race conditions created multiple records per episode
+   */
+  async cleanupDuplicates(userId: string): Promise<number> {
+    try {
+      const allProgress = await this.database
+        .get<UserEpisodeProgress>('user_episode_progress')
+        .query(Q.where('user_id', userId))
+        .fetch();
+
+      // Group by episode ID
+      const byEpisode = new Map<string, UserEpisodeProgress[]>();
+      allProgress.forEach((p) => {
+        const existing = byEpisode.get(p.episodeId) || [];
+        existing.push(p);
+        byEpisode.set(p.episodeId, existing);
+      });
+
+      let deletedCount = 0;
+
+      // For each episode with duplicates, keep only the one with highest position
+      for (const [episodeId, records] of byEpisode) {
+        if (records.length <= 1) continue;
+
+        // Sort by position descending (highest first)
+        records.sort((a, b) => b.currentPosition - a.currentPosition);
+
+        // Delete all except the first (highest position)
+        const toDelete = records.slice(1);
+        if (toDelete.length > 0) {
+          console.log(`[ProgressRepo] Cleaning ${toDelete.length} duplicate(s) for episode ${episodeId.substring(0, 30)}`);
+          await this.database.write(async () => {
+            for (const record of toDelete) {
+              await record.markAsDeleted();
+              deletedCount++;
+            }
+          });
+        }
+      }
+
+      if (deletedCount > 0) {
+        console.log(`[ProgressRepo] Cleaned up ${deletedCount} duplicate progress record(s)`);
+      }
+
+      return deletedCount;
+    } catch (error) {
+      console.error('[ProgressRepo] Error cleaning duplicates:', error);
+      return 0;
+    }
+  }
+
   async getAllUnsyncedProgress(): Promise<UserEpisodeProgress[]> {
     return await this.database
       .get<UserEpisodeProgress>('user_episode_progress')
@@ -326,7 +385,7 @@ export class ProgressRepository extends BaseRepository<UserEpisodeProgress> {
 
         // Only sync if remote is newer than local (or local doesn't exist)
         if (remoteUpdated > localUpdated) {
-          console.log(`Syncing progress for episode ${remote.episode_id} (remote is newer)`);
+          console.log(`[ProgressRepo] OVERWRITING local with remote for ${remote.episode_id}: local pos ${local?.currentPosition || 0} -> remote pos ${remote.current_position}`);
 
           if (local) {
             // Update existing local record

@@ -1,5 +1,5 @@
 import TrackPlayer from 'react-native-track-player';
-import { PlaybackService } from './app/services/audio/trackPlayerService';
+import { PlaybackService } from './app/services/audio/playbackService';
 
 // Register the playback service - MUST be before app registration
 TrackPlayer.registerPlaybackService(() => PlaybackService);

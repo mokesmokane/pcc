@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useDatabase } from '@/contexts/DatabaseContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { queryKeys } from './queryKeys';
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { Q } from '@nozbe/watermelondb';
 import type UserEpisodeProgress from '@/models/UserEpisodeProgress';
 
@@ -79,23 +79,6 @@ export function useEpisodeProgress(episodeId: string | null) {
 export function useMultipleEpisodeProgress(episodeIds: string[]) {
   const { progressRepository } = useDatabase();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
-
-  // Set up observable for any progress changes
-  useEffect(() => {
-    if (episodeIds.length === 0 || !user?.id || !progressRepository) return;
-
-    // Subscribe to changes for all episodes in the list
-    const subscriptions = episodeIds.map((episodeId) =>
-      progressRepository.observeProgress(user.id, episodeId).subscribe(() => {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.podcastMetadata.multipleProgress(episodeIds, user.id),
-        });
-      })
-    );
-
-    return () => subscriptions.forEach((sub) => sub.unsubscribe());
-  }, [episodeIds, user?.id, progressRepository, queryClient]);
 
   return useQuery({
     queryKey: queryKeys.podcastMetadata.multipleProgress(episodeIds, user?.id!),
@@ -111,7 +94,16 @@ export function useMultipleEpisodeProgress(episodeIds: string[]) {
           .query(Q.where('user_id', user.id), Q.where('episode_id', Q.oneOf(episodeIds)))
           .fetch();
 
+        // IMPORTANT: There may be duplicate records due to race conditions
+        // Always use the record with the HIGHEST position (most progress)
         progressRecords.forEach((progress) => {
+          const existing = progressMap.get(progress.episodeId);
+
+          // Skip if we already have a record with more progress
+          if (existing && existing.currentPosition >= progress.currentPosition) {
+            return;
+          }
+
           const progressPercentage =
             progress.totalDuration > 0
               ? Math.min(100, Math.round((progress.currentPosition / progress.totalDuration) * 100))
@@ -317,6 +309,11 @@ export function useUpdateEpisodeProgress() {
       // Invalidate related queries
       queryClient.invalidateQueries({
         queryKey: queryKeys.podcastMetadata.progress(variables.episodeId, user.id),
+      });
+
+      // Invalidate all multipleProgress queries (used by Up Next tab)
+      queryClient.invalidateQueries({
+        queryKey: [...queryKeys.podcastMetadata.all, 'multipleProgress'],
       });
 
       // If episode was completed, also invalidate stats and history

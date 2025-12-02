@@ -62,9 +62,23 @@ export function useHistoryData(options?: UseHistoryDataOptions): UseHistoryDataR
       // Fetch all user weekly choices
       const choices = await weeklySelectionRepo.getAllUserWeeklyChoices(user.id);
 
+      // Calculate start of current week (Monday)
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - daysFromMonday);
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      // Filter out current week's choices - history should only show past weeks
+      const pastChoices = choices.filter(choice => {
+        const chosenDate = new Date(choice.chosenAt);
+        return chosenDate < startOfWeek;
+      });
+
       // Process each choice to get progress and member count
       const episodesWithProgress = await Promise.all(
-        choices.map(async (choice) => {
+        pastChoices.map(async (choice) => {
           // Get progress for this episode
           const progress = await progressRepo.getProgress(user.id, choice.episodeId);
           const progressPercentage = progress && progress.totalDuration > 0

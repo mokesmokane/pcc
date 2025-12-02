@@ -45,6 +45,7 @@ interface AudioState {
   hasShownCompletion: boolean;
   playbackRate: number;
   progressIntervalId: NodeJS.Timeout | null;
+  isInitialized: boolean;
 
   // Callbacks for integration
   onProgressUpdate: ((episodeId: string, position: number, duration: number) => void) | null;
@@ -77,6 +78,7 @@ export const useAudioStore = create<AudioStore>()(
     hasShownCompletion: false,
     playbackRate: 1,
     progressIntervalId: null,
+    isInitialized: false,
     onProgressUpdate: null,
     onEpisodeComplete: null,
 
@@ -111,9 +113,23 @@ export const useAudioStore = create<AudioStore>()(
     },
 
     initialize: (callbacks) => {
+      const { isInitialized } = get();
+
+      // Prevent multiple initializations - this causes duplicate event listeners!
+      if (isInitialized) {
+        console.log('[AudioStore] Already initialized, skipping...');
+        // Just update callbacks
+        set({
+          onProgressUpdate: callbacks.onProgressUpdate,
+          onEpisodeComplete: callbacks.onEpisodeComplete,
+        });
+        return;
+      }
+
       console.log('[AudioStore] Initializing with RNTP...');
 
       set({
+        isInitialized: true,
         onProgressUpdate: callbacks.onProgressUpdate,
         onEpisodeComplete: callbacks.onEpisodeComplete,
       });
@@ -195,13 +211,21 @@ export const useAudioStore = create<AudioStore>()(
           const track = await TrackPlayer.getActiveTrack();
           const progress = await TrackPlayer.getProgress();
 
+          // IMPORTANT: Don't save near-zero position if we have a saved position for this track
+          // This prevents overwriting real progress when save fires before seek completes
+          if (track?.id && progress.position < 5) {
+            const savedPosition = await getTrackPositionLocal(track.id);
+            if (savedPosition > 10) {
+              return;
+            }
+          }
+
           // Minimum duration threshold (60 seconds) - don't save if duration seems wrong
           // This prevents saving bad data while the track is still loading/buffering
           const MIN_VALID_DURATION = 60;
 
           if (track?.id && progress.duration >= MIN_VALID_DURATION) {
             const { onProgressUpdate, onEpisodeComplete, hasShownCompletion } = get();
-            console.log('[AudioStore] Periodic save - position:', Math.floor(progress.position), 'duration:', Math.floor(progress.duration));
             onProgressUpdate?.(track.id, progress.position, progress.duration);
 
             // Also persist to AsyncStorage for app restart recovery
@@ -217,8 +241,6 @@ export const useAudioStore = create<AudioStore>()(
               set({ hasShownCompletion: true });
               onEpisodeComplete?.();
             }
-          } else if (track?.id && progress.duration < MIN_VALID_DURATION) {
-            console.log('[AudioStore] Skipping save - duration too short (still loading?):', progress.duration);
           }
         } catch (error) {
           console.error('[AudioStore] Error saving progress:', error);

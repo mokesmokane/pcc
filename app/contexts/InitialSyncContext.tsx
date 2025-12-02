@@ -66,6 +66,10 @@ export function InitialSyncProvider({ children }: { children: React.ReactNode })
     try {
       console.log('  → Syncing user progress...');
       const repo = new ProgressRepository(database);
+
+      // First, clean up any duplicate records from race conditions
+      await repo.cleanupDuplicates(user.id);
+
       await repo.syncFromSupabase(user.id);
       console.log('  ✓ User progress synced');
     } catch (error) {

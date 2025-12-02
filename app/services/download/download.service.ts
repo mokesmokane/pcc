@@ -21,24 +21,54 @@ interface Download {
     title: string;
     podcastTitle: string;
     artwork: string;
+    description?: string;
   };
 }
 
+// Downloaded episode record (persisted to AsyncStorage)
+export interface DownloadedEpisode {
+  id: string;
+  title: string;
+  podcastTitle: string;
+  artwork: string;
+  localPath: string;
+  downloadedAt: number;
+  description?: string;
+}
+
 interface DownloadState {
+  // Active downloads (in-progress)
   downloads: Map<string, Download>;
   activeDownloads: Set<string>;
 
-  // Actions
+  // Completed downloads list (persisted)
+  downloadedEpisodes: DownloadedEpisode[];
+  isLoadingDownloads: boolean;
+
+  // Active download actions
   addDownload: (download: Download) => void;
   updateDownload: (id: string, updates: Partial<Download>) => void;
   removeDownload: (id: string) => void;
   getDownload: (id: string) => Download | undefined;
   getAllDownloads: () => Download[];
+
+  // Downloaded episodes actions
+  loadDownloadedEpisodes: () => Promise<void>;
+  addDownloadedEpisode: (episode: DownloadedEpisode) => void;
+  removeDownloadedEpisode: (episodeId: string) => void;
+  isEpisodeDownloaded: (episodeId: string) => boolean;
 }
+
+// Selectors
+export const selectDownloadedEpisodes = (state: DownloadState) => state.downloadedEpisodes;
+export const selectIsLoadingDownloads = (state: DownloadState) => state.isLoadingDownloads;
+export const selectDownloads = (state: DownloadState) => state.downloads;
 
 export const useDownloadStore = create<DownloadState>((set, get) => ({
   downloads: new Map(),
   activeDownloads: new Set(),
+  downloadedEpisodes: [],
+  isLoadingDownloads: false,
 
   addDownload: (download) =>
     set((state) => {
@@ -72,6 +102,57 @@ export const useDownloadStore = create<DownloadState>((set, get) => ({
   getDownload: (id) => get().downloads.get(id),
 
   getAllDownloads: () => Array.from(get().downloads.values()),
+
+  // Load downloaded episodes from AsyncStorage
+  loadDownloadedEpisodes: async () => {
+    console.log('[DownloadStore] Loading downloaded episodes...');
+    set({ isLoadingDownloads: true });
+    try {
+      const stored = await AsyncStorage.getItem(DOWNLOADS_KEY);
+      const episodes: DownloadedEpisode[] = stored ? JSON.parse(stored) : [];
+      console.log('[DownloadStore] Loaded', episodes.length, 'downloaded episodes');
+      set({ downloadedEpisodes: episodes, isLoadingDownloads: false });
+    } catch (error) {
+      console.error('[DownloadStore] Failed to load downloaded episodes:', error);
+      set({ isLoadingDownloads: false });
+    }
+  },
+
+  // Add a downloaded episode to the list
+  addDownloadedEpisode: (episode) => {
+    console.log('[DownloadStore] Adding downloaded episode:', episode.title);
+    set((state) => {
+      // Check if already exists
+      if (state.downloadedEpisodes.some(e => e.id === episode.id)) {
+        return state;
+      }
+      return { downloadedEpisodes: [...state.downloadedEpisodes, episode] };
+    });
+  },
+
+  // Remove a downloaded episode from the list (and from active downloads if present)
+  removeDownloadedEpisode: (episodeId) => {
+    console.log('[DownloadStore] Removing downloaded episode:', episodeId);
+    set((state) => {
+      // Also remove from downloads Map if present (might have status 'completed')
+      const newDownloads = new Map(state.downloads);
+      // Find and remove any download entries for this episode
+      for (const [key, download] of newDownloads) {
+        if (download.episodeId === episodeId) {
+          newDownloads.delete(key);
+        }
+      }
+      return {
+        downloads: newDownloads,
+        downloadedEpisodes: state.downloadedEpisodes.filter(e => e.id !== episodeId),
+      };
+    });
+  },
+
+  // Check if an episode is downloaded
+  isEpisodeDownloaded: (episodeId) => {
+    return get().downloadedEpisodes.some(e => e.id === episodeId);
+  },
 }));
 
 export class DownloadService {
@@ -114,6 +195,7 @@ export class DownloadService {
     audioUrl: string;
     podcastTitle?: string;
     artwork?: string;
+    description?: string;
   }): Promise<string> {
     console.log('[Download] queueDownload called with:', {
       id: episode.id,
@@ -158,6 +240,7 @@ export class DownloadService {
         title: episode.title,
         podcastTitle: episode.podcastTitle || '',
         artwork: episode.artwork || '',
+        description: episode.description || '',
       },
     };
 
@@ -417,11 +500,27 @@ export class DownloadService {
     const safeId = this.sanitizeForFilename(episodeId);
     const filePath = `${this.downloadDir}${safeId}.mp3`;
 
+    console.log('[Download] deleteDownload called:', { episodeId, safeId, filePath });
+
     try {
+      // Check if file exists before delete
+      const beforeInfo = await FileSystem.getInfoAsync(filePath);
+      console.log('[Download] File before delete:', beforeInfo);
+
       await FileSystem.deleteAsync(filePath, { idempotent: true });
+
+      // Verify file was deleted
+      const afterInfo = await FileSystem.getInfoAsync(filePath);
+      console.log('[Download] File after delete:', afterInfo);
+
+      if (afterInfo.exists) {
+        console.error('[Download] File still exists after deleteAsync!');
+      }
+
       await this.removeDownloadRecord(episodeId);
+      console.log('[Download] Delete completed successfully');
     } catch (error) {
-      console.error('Failed to delete download:', error);
+      console.error('[Download] Failed to delete download:', error);
       throw error;
     }
   }
@@ -461,11 +560,11 @@ export class DownloadService {
     }
   }
 
-  // Save download metadata to AsyncStorage
+  // Save download metadata to AsyncStorage AND update store
   private async saveDownloadRecord(
     episodeId: string,
     filePath: string,
-    metadata?: { title: string; podcastTitle: string; artwork: string }
+    metadata?: { title: string; podcastTitle: string; artwork: string; description?: string }
   ): Promise<void> {
     console.log('[Download] saveDownloadRecord:', { episodeId, filePath, metadata });
     try {
@@ -479,19 +578,22 @@ export class DownloadService {
         return;
       }
 
-      const newDownload = {
+      const newDownload: DownloadedEpisode = {
         id: episodeId,
         title: metadata?.title || 'Unknown',
         podcastTitle: metadata?.podcastTitle || 'Unknown Podcast',
         artwork: metadata?.artwork || '',
-        audioUrl: '', // Original URL not needed since we have local file
         localPath: filePath,
         downloadedAt: Date.now(),
+        description: metadata?.description || '',
       };
 
       downloads.push(newDownload);
       await AsyncStorage.setItem(DOWNLOADS_KEY, JSON.stringify(downloads));
       console.log('[Download] Saved download record successfully');
+
+      // Update store for reactive UI updates
+      useDownloadStore.getState().addDownloadedEpisode(newDownload);
     } catch (error) {
       console.error('[Download] Failed to save download record:', error);
     }
@@ -507,6 +609,9 @@ export class DownloadService {
       const filtered = downloads.filter((d: { id: string }) => d.id !== episodeId);
       await AsyncStorage.setItem(DOWNLOADS_KEY, JSON.stringify(filtered));
       console.log('[Download] Removed download record successfully');
+
+      // Update store for reactive UI updates
+      useDownloadStore.getState().removeDownloadedEpisode(episodeId);
     } catch (error) {
       console.error('[Download] Failed to remove download record:', error);
     }

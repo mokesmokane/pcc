@@ -7,9 +7,40 @@ export const styles = StyleSheet.create({
   },
   titleSection: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 12,
     paddingTop: 10,
     backgroundColor: '#F4F1ED',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    gap: 8,
+    alignItems: 'center',
+  },
+  manageButton: {
+    marginLeft: 'auto',
+    padding: 8,
+  },
+  tab: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E8E5E1',
+  },
+  tabActive: {
+    backgroundColor: '#E05F4E',
+    borderColor: '#E05F4E',
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#8B8680',
+  },
+  tabTextActive: {
+    color: '#FFFFFF',
   },
   title: {
     fontSize: 32,
@@ -65,17 +96,6 @@ export const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#E05F4E',
   },
-  trackNumber: {
-    width: 24,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#8B8680',
-    textAlign: 'center',
-    marginRight: 8,
-  },
-  trackNumberCurrent: {
-    color: '#E05F4E',
-  },
   artwork: {
     width: 50,
     height: 50,
@@ -85,16 +105,13 @@ export const styles = StyleSheet.create({
   artworkContainer: {
     position: 'relative',
   },
-  nowPlayingBadge: {
+  clubBadge: {
     position: 'absolute',
-    bottom: -4,
-    right: 8,
-    backgroundColor: '#E05F4E',
-    borderRadius: 10,
-    width: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    top: -4,
+    right: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 4,
   },
   content: {
     flex: 1,

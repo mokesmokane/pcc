@@ -23,6 +23,7 @@ import { useAudioStoreInitialize, useAudioStoreCleanup } from './stores/audioSto
 import { useUpdateEpisodeProgress } from './hooks/queries/usePodcastMetadata';
 import { setupPlayer } from './services/audio/trackPlayerService';
 import TrackPlayer from 'react-native-track-player';
+import { useDownloadStore } from './services/download/download.service';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -51,6 +52,18 @@ function AudioStoreInitializer() {
       cleanupAudioStore();
     };
   }, [initializeAudioStore, cleanupAudioStore, updateProgressMutation, router]);
+
+  return null;
+}
+
+// Initialize Zustand stores on app start
+// Note: Subscriptions store uses persist middleware and auto-hydrates from AsyncStorage
+// Downloads store needs explicit loading from AsyncStorage
+function StoreInitializer() {
+  useEffect(() => {
+    // Load downloaded episodes from AsyncStorage into the store
+    useDownloadStore.getState().loadDownloadedEpisodes();
+  }, []);
 
   return null;
 }
@@ -111,6 +124,8 @@ export default function RootLayout() {
                       <MeetupsProvider>
                         {/* Initialize audio store with React Query hooks */}
                         <AudioStoreInitializer />
+                        {/* Initialize Zustand stores (subscriptions, downloads) */}
+                        <StoreInitializer />
                         <ChaptersProvider>
                           <TranscriptProvider>
                             <WeeklySelectionsProvider>
@@ -132,6 +147,7 @@ export default function RootLayout() {
                                   <Stack.Screen name="onboarding-struggles" options={{ headerShown: false }} />
                                   <Stack.Screen name="onboarding-interests" options={{ headerShown: false }} />
                                   <Stack.Screen name="onboarding-ready" options={{ headerShown: false }} />
+                                  <Stack.Screen name="full-history" options={{ headerShown: false }} />
                                 </Stack>
                             </WeeklySelectionsProvider>
                           </TranscriptProvider>

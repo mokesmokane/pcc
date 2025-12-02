@@ -23,7 +23,7 @@ import { TranscriptSheet } from './components/player/TranscriptSheet';
 import { useAudioPlayer } from './stores/audioStore.hooks';
 import { useComments } from './contexts/CommentsContext';
 import { useFlushProgressSync } from './hooks/queries/usePodcastMetadata';
-import { downloadService } from './services/downloadService';
+import { downloadService, useDownloadStore } from './services/download/download.service';
 import InPersonClubSection from './components/InPersonClubSection';
 import PoddleboxSection from './components/PoddleboxSection';
 
@@ -178,11 +178,17 @@ export default function PlayerScreen() {
   const [episodeData, setEpisodeData] = useState<any>(null);
   const [isDownloaded, setIsDownloaded] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+
+  // Subscribe to download store for progress updates
+  const downloads = useDownloadStore((state) => state.downloads);
   const [showReplySheet, setShowReplySheet] = useState(false);
   const [replySheetMounted, setReplySheetMounted] = useState(false);
   const [selectedComment, setSelectedComment] = useState<any>(null);
   const [replies, setReplies] = useState<any[]>([]);
   const [showUpNext, setShowUpNext] = useState(false);
+  // Track user's seek position in preview mode (before play is pressed)
+  const [userSeekPosition, setUserSeekPosition] = useState<number | null>(null);
 
   // Check if we're in preview mode (viewing an episode that's not currently loaded)
   const isPreviewMode = params.trackId && currentTrack?.id !== params.trackId;
@@ -232,13 +238,33 @@ export default function PlayerScreen() {
     const checkDownloadStatus = async () => {
       if (params.trackId || currentTrack?.id) {
         const episodeId = (params.trackId || currentTrack?.id) as string;
-        const downloaded = await downloadService.isEpisodeDownloaded(episodeId);
+        const downloaded = await downloadService.isDownloaded(episodeId);
         setIsDownloaded(downloaded);
       }
     };
 
     checkDownloadStatus();
-  }, [params.trackId, currentTrack]);
+  }, [params.trackId, currentTrack?.id]);
+
+  // Track download progress from the store
+  useEffect(() => {
+    const episodeId = (params.trackId || currentTrack?.id) as string;
+    if (!episodeId || !isDownloading) return;
+
+    // Find the download for this episode
+    const download = Array.from(downloads.values()).find(d => d.episodeId === episodeId);
+    if (download) {
+      setDownloadProgress(download.progress);
+      if (download.status === 'completed') {
+        setIsDownloading(false);
+        setIsDownloaded(true);
+        setDownloadProgress(0);
+      } else if (download.status === 'error') {
+        setIsDownloading(false);
+        setDownloadProgress(0);
+      }
+    }
+  }, [downloads, params.trackId, currentTrack?.id, isDownloading]);
 
   const handleDownload = async () => {
     const episodeId = (params.trackId || currentTrack?.id) as string;
@@ -263,19 +289,14 @@ export default function PlayerScreen() {
         throw new Error('No audio URL available');
       }
 
-      await downloadService.downloadEpisode(
-        episodeId,
-        audioUrl,
-        {
-          title: episodeData?.episode_title || currentTrack?.title || '',
-          podcast_title: episodeData?.podcast_title || currentTrack?.artist || '',
-          artwork_url: episodeData?.artwork_url || currentTrack?.artwork,
-        },
-        (progress: number) => {
-          // Progress callback - we could set state here if needed
-          console.log('Download progress:', progress);
-        }
-      );
+      await downloadService.queueDownload({
+        id: episodeId,
+        title: episodeData?.episode_title || currentTrack?.title || '',
+        audioUrl: audioUrl,
+        podcastTitle: episodeData?.podcast_title || currentTrack?.artist || '',
+        artwork: episodeData?.artwork_url || currentTrack?.artwork,
+        description: episodeData?.episode_description || currentTrack?.description || params.trackDescription as string || '',
+      });
 
       setIsDownloaded(true);
     } catch (error) {
@@ -291,7 +312,10 @@ export default function PlayerScreen() {
     const needsToLoad = params.trackId && params.trackAudioUrl && currentTrack?.id !== params.trackId;
 
     if (needsToLoad) {
-      // Load and play the new episode, passing the saved position if available
+      // Use user's seek position if they dragged the slider, otherwise use saved position
+      const startPosition = userSeekPosition !== null ? userSeekPosition : previewPosition;
+
+      // Load and play the new episode
       await playNow({
         id: params.trackId as string,
         title: params.trackTitle as string || 'Unknown',
@@ -300,7 +324,10 @@ export default function PlayerScreen() {
         audio_url: params.trackAudioUrl as string,
         description: params.trackDescription as string,
         duration: previewDuration,
-      }, previewPosition);
+      }, startPosition);
+
+      // Reset user seek position after loading
+      setUserSeekPosition(null);
     } else {
       // Normal play/pause toggle for current track
       if (isPlaying) {
@@ -328,6 +355,7 @@ export default function PlayerScreen() {
           episodeId={typeof params.episodeId === 'string' ? params.episodeId : params.episodeId?.[0]}
           isDownloaded={isDownloaded}
           isDownloading={isDownloading}
+          downloadProgress={downloadProgress}
           onDownload={handleDownload}
           isPlaying={isPlaying && !isPreviewMode}
           playbackRate={playbackRate}
@@ -338,8 +366,9 @@ export default function PlayerScreen() {
           onSleepTimerPress={() => setShowSleepTimer(true)}
           onSharePress={() => console.log('Share episode')}
           onDownloadPress={handleDownload}
-          previewPosition={isPreviewMode ? previewPosition : undefined}
+          previewPosition={isPreviewMode ? (userSeekPosition ?? previewPosition) : undefined}
           previewDuration={isPreviewMode ? previewDuration : undefined}
+          onSeek={isPreviewMode ? setUserSeekPosition : undefined}
         />
 
         {/* About Section */}

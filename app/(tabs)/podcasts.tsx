@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -11,29 +11,26 @@ import {
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
-import { searchPodcasts, PodcastSearchResult } from '../services/podcastIndex.service';
+import { PodcastSearchResult, searchPodcasts } from '../services/podcastIndex.service';
+import { sanitizeTitle } from '../utils/rss';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { InfoDialog } from '../components/InfoDialog';
 
+// Store hooks
+import {
+  useAddSubscription,
+  useSubscriptionActions,
+  useSubscriptions,
+} from '../stores/subscriptionsStore.hooks';
+import type { TrackedPodcast } from '../stores/subscriptionsStore';
+
 const { width } = Dimensions.get('window');
-const GRID_SPACING = 0;
 const NUM_COLUMNS = 3;
 const ITEM_WIDTH = width / NUM_COLUMNS;
-
-interface Podcast {
-  id: string;
-  title: string;
-  artwork: string;
-  feedUrl: string;
-  author?: string;
-}
-
-const STORAGE_KEY = '@podcast_subscriptions';
 
 export default function PodcastsScreen() {
   const router = useRouter();
@@ -41,7 +38,22 @@ export default function PodcastsScreen() {
   const [fontsLoaded] = useFonts({
     PaytoneOne_400Regular,
   });
-  const [podcasts, setPodcasts] = useState<Podcast[]>([]);
+
+  // Store state (reactive, auto-persisted)
+  const podcasts = useSubscriptions();
+  const addSubscription = useAddSubscription();
+  const { updateSubscription } = useSubscriptionActions();
+
+  // Sort podcasts with tracked ones first
+  const sortedPodcasts = useMemo(() => {
+    return [...podcasts].sort((a, b) => {
+      if (a.tracked && !b.tracked) return -1;
+      if (!a.tracked && b.tracked) return 1;
+      return 0;
+    });
+  }, [podcasts]);
+
+  // Local UI state
   const [loading, setLoading] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -56,35 +68,8 @@ export default function PodcastsScreen() {
     type: 'info',
   });
 
-  // Load subscriptions when screen is focused
-  useFocusEffect(
-    useCallback(() => {
-      loadSubscriptions();
-    }, [])
-  );
-
-  const loadSubscriptions = async () => {
-    try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setPodcasts(JSON.parse(stored));
-      }
-    } catch (error) {
-      console.error('Failed to load subscriptions:', error);
-    }
-  };
-
-  const saveSubscriptions = async (subs: Podcast[]) => {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(subs));
-      setPodcasts(subs);
-    } catch (error) {
-      console.error('Failed to save subscriptions:', error);
-    }
-  };
-
-  const parseOPML = (opmlText: string): Podcast[] => {
-    const podcasts: Podcast[] = [];
+  const parseOPML = (opmlText: string): TrackedPodcast[] => {
+    const parsedPodcasts: TrackedPodcast[] = [];
 
     // Simple regex-based OPML parser
     const outlineRegex = /<outline[^>]*type="rss"[^>]*>/gi;
@@ -96,7 +81,7 @@ export default function PodcastsScreen() {
         const xmlUrlMatch = match.match(/xmlUrl="([^"]*)"/i);
 
         if (titleMatch && xmlUrlMatch) {
-          podcasts.push({
+          parsedPodcasts.push({
             id: xmlUrlMatch[1],
             title: titleMatch[1],
             feedUrl: xmlUrlMatch[1],
@@ -106,7 +91,7 @@ export default function PodcastsScreen() {
       });
     }
 
-    return podcasts;
+    return parsedPodcasts;
   };
 
   const fetchPodcastArtwork = async (feedUrl: string): Promise<{ artwork: string; author?: string }> => {
@@ -132,10 +117,10 @@ export default function PodcastsScreen() {
         }
       }
 
-      // Get author
+      // Get author and sanitize it
       const authorMatch = xmlText.match(/<itunes:author>([^<]*)<\/itunes:author>/i);
       if (authorMatch) {
-        author = authorMatch[1];
+        author = sanitizeTitle(authorMatch[1]);
       }
 
       return { artwork, author };
@@ -183,9 +168,8 @@ export default function PodcastsScreen() {
         const existingIds = new Set(podcasts.map(p => p.id));
         const newPodcasts = importedPodcasts.filter(p => !existingIds.has(p.id));
 
-        // Save immediately so user sees them
-        const updatedPodcasts = [...podcasts, ...newPodcasts];
-        await saveSubscriptions(updatedPodcasts);
+        // Add each new podcast via store action
+        newPodcasts.forEach(podcast => addSubscription(podcast));
 
         setInfoDialog({
           visible: true,
@@ -210,24 +194,16 @@ export default function PodcastsScreen() {
     }
   };
 
-  const fetchArtworkForPodcasts = async (podcastsToFetch: Podcast[]) => {
+  const fetchArtworkForPodcasts = async (podcastsToFetch: TrackedPodcast[]) => {
     // Fetch artwork for each podcast
     for (const podcast of podcastsToFetch) {
       try {
         const { artwork, author } = await fetchPodcastArtwork(podcast.feedUrl);
 
-        // Update the podcast with artwork
-        setPodcasts(current => {
-          const updated = current.map(p => {
-            if (p.id === podcast.id) {
-              return { ...p, artwork, author: author || p.author };
-            }
-            return p;
-          });
-
-          // Save updated list
-          AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-          return updated;
+        // Update the podcast with artwork via store action
+        updateSubscription(podcast.id, {
+          artwork,
+          author: author || podcast.author,
         });
       } catch (error) {
         console.error(`Error fetching artwork for ${podcast.title}:`, error);
@@ -235,7 +211,7 @@ export default function PodcastsScreen() {
     }
   };
 
-  const handlePodcastPress = (podcast: Podcast) => {
+  const handlePodcastPress = (podcast: TrackedPodcast) => {
     router.push({
       pathname: '/subscribed-podcast-detail',
       params: {
@@ -247,7 +223,7 @@ export default function PodcastsScreen() {
     });
   };
 
-  const renderPodcast = ({ item }: { item: Podcast }) => (
+  const renderPodcast = ({ item }: { item: TrackedPodcast }) => (
     <TouchableOpacity
       style={styles.podcastItem}
       onPress={() => handlePodcastPress(item)}
@@ -327,7 +303,7 @@ export default function PodcastsScreen() {
     }, 1000);
   }, [handleSearch]);
 
-  const handleAddFromSearch = async (result: PodcastSearchResult) => {
+  const handleAddFromSearch = (result: PodcastSearchResult) => {
     // Check if already subscribed
     if (podcasts.some(p => p.feedUrl === result.url)) {
       setInfoDialog({
@@ -339,16 +315,16 @@ export default function PodcastsScreen() {
       return;
     }
 
-    const newPodcast: Podcast = {
+    const newPodcast: TrackedPodcast = {
       id: result.url,
-      title: result.title,
+      title: sanitizeTitle(result.title),
       artwork: result.artwork || result.image || '',
       feedUrl: result.url,
-      author: result.author,
+      author: result.author ? sanitizeTitle(result.author) : undefined,
     };
 
-    const updatedPodcasts = [...podcasts, newPodcast];
-    await saveSubscriptions(updatedPodcasts);
+    // Add via store action (auto-persisted)
+    addSubscription(newPodcast);
     setShowSearch(false);
     setSearchQuery('');
     setSearchResults([]);
@@ -512,9 +488,9 @@ export default function PodcastsScreen() {
   return (
     <View style={styles.container}>
       {renderHeader()}
-      {podcasts.length > 0 ? (
+      {sortedPodcasts.length > 0 ? (
         <FlatList
-          data={podcasts}
+          data={sortedPodcasts}
           renderItem={renderPodcast}
           keyExtractor={(item) => item.id}
           numColumns={NUM_COLUMNS}

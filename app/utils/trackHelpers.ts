@@ -1,4 +1,7 @@
 import TrackPlayer, { Track } from 'react-native-track-player';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const TRACK_POSITIONS_KEY = '@track_positions';
 
 /**
  * App-specific track interface that matches our episode data
@@ -24,6 +27,7 @@ export function toRNTPTrack(track: AppTrack): Track {
     artist: track.artist,
     artwork: track.artwork,
     duration: track.duration,
+    description: track.description,
   };
 }
 
@@ -62,7 +66,22 @@ export function episodeToTrack(episode: {
  * Play a track immediately (moves to front if in queue, otherwise adds to front)
  */
 export async function playTrackNow(track: AppTrack, startPosition?: number): Promise<void> {
-  console.log('[TrackHelpers] Playing track now:', track.title);
+  console.log('[TrackHelpers] Playing track now:', track.title, 'at position:', startPosition);
+
+  // IMPORTANT: Save position to AsyncStorage BEFORE playing
+  // The PlaybackActiveTrackChanged event handler will read this and seek to it
+  // This prevents the race condition where the old saved position overrides our seek
+  if (startPosition !== undefined && startPosition >= 0) {
+    try {
+      const stored = await AsyncStorage.getItem(TRACK_POSITIONS_KEY);
+      const positions: Record<string, number> = stored ? JSON.parse(stored) : {};
+      positions[track.id] = startPosition;
+      await AsyncStorage.setItem(TRACK_POSITIONS_KEY, JSON.stringify(positions));
+      console.log('[TrackHelpers] Saved start position to AsyncStorage:', startPosition);
+    } catch (error) {
+      console.error('[TrackHelpers] Failed to save position:', error);
+    }
+  }
 
   const queue = await TrackPlayer.getQueue();
   const existingIndex = queue.findIndex(t => t.id === track.id);
@@ -78,9 +97,8 @@ export async function playTrackNow(track: AppTrack, startPosition?: number): Pro
   await TrackPlayer.add(toRNTPTrack(track), 0);
   await TrackPlayer.skip(0);
 
-  if (startPosition && startPosition > 0) {
-    await TrackPlayer.seekTo(startPosition);
-  }
+  // Note: We don't need to seekTo here anymore - the PlaybackActiveTrackChanged
+  // event handler will read the saved position and seek to it
 
   await TrackPlayer.play();
 }
