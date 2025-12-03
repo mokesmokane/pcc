@@ -24,6 +24,7 @@ import { useUpdateEpisodeProgress } from './hooks/queries/usePodcastMetadata';
 import { setupPlayer } from './services/audio/trackPlayerService';
 import TrackPlayer from 'react-native-track-player';
 import { useDownloadStore } from './services/download/download.service';
+import { useRatingStore } from './stores/useRatingStore';
 
 // Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
@@ -36,6 +37,7 @@ function AudioStoreInitializer() {
   const cleanupAudioStore = useAudioStoreCleanup();
   const router = useRouter();
   const updateProgressMutation = useUpdateEpisodeProgress();
+  const setPendingRating = useRatingStore((state) => state.setPendingRating);
 
   useEffect(() => {
     // Initialize the audio store with callbacks
@@ -46,12 +48,19 @@ function AudioStoreInitializer() {
       onEpisodeComplete: () => {
         router.push('/episode-complete');
       },
+      onTrackFinished: (trackId: string, trackTitle: string, trackArtist?: string, trackArtwork?: string) => {
+        console.log('[Layout] Track finished:', trackId, trackTitle);
+        // Navigate to Clubs tab
+        router.replace('/(tabs)/home');
+        // Set pending rating to trigger the modal
+        setPendingRating({ episodeId: trackId, episodeTitle: trackTitle, podcastTitle: trackArtist, artwork: trackArtwork });
+      },
     });
 
     return () => {
       cleanupAudioStore();
     };
-  }, [initializeAudioStore, cleanupAudioStore, updateProgressMutation, router]);
+  }, [initializeAudioStore, cleanupAudioStore, updateProgressMutation, router, setPendingRating]);
 
   return null;
 }

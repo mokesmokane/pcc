@@ -81,14 +81,32 @@ export function ManageTrackedPodcastsModal({
   const podcasts = useSubscriptions();
   const toggleTracking = useToggleTracking();
 
-  // Sort podcasts with tracked ones first
+  // Capture sort order when modal opens - keep stable during session
+  const [displayOrder, setDisplayOrder] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (visible) {
+      // Sort podcasts with tracked ones first, then capture the order
+      const sorted = [...podcasts].sort((a, b) => {
+        if (a.tracked && !b.tracked) return -1;
+        if (!a.tracked && b.tracked) return 1;
+        return 0;
+      });
+      setDisplayOrder(sorted.map(p => p.id));
+    }
+  }, [visible]); // Only recalculate when modal visibility changes
+
+  // Use the captured display order to sort podcasts
   const sortedPodcasts = useMemo(() => {
+    if (displayOrder.length === 0) return podcasts;
+
+    const orderMap = new Map(displayOrder.map((id, index) => [id, index]));
     return [...podcasts].sort((a, b) => {
-      if (a.tracked && !b.tracked) return -1;
-      if (!a.tracked && b.tracked) return 1;
-      return 0;
+      const aIndex = orderMap.get(a.id) ?? 999;
+      const bIndex = orderMap.get(b.id) ?? 999;
+      return aIndex - bIndex;
     });
-  }, [podcasts]);
+  }, [podcasts, displayOrder]);
 
   const renderPodcast = useCallback(({ item }: { item: TrackedPodcast }) => (
     <PodcastRow item={item} onToggle={toggleTracking} />

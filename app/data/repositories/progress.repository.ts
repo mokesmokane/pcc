@@ -222,6 +222,38 @@ export class ProgressRepository extends BaseRepository<UserEpisodeProgress> {
   }
 
   /**
+   * Reset progress for a specific episode (mark as unlistened)
+   * Sets position to 0, completed to false, and syncs to Supabase
+   */
+  async resetProgress(userId: string, episodeId: string): Promise<boolean> {
+    try {
+      const progress = await this.getProgress(userId, episodeId);
+      if (progress) {
+        const duration = progress.totalDuration;
+
+        // Update local record
+        await this.database.write(async () => {
+          await progress.update((p) => {
+            p.currentPosition = 0;
+            p.completed = false;
+            p.needsSync = true;
+          });
+        });
+
+        // Sync to Supabase immediately
+        await this.syncToSupabase(userId, episodeId, 0, duration);
+
+        console.log(`[ProgressRepository] Reset progress for episode ${episodeId}`);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('[ProgressRepository] Error resetting progress:', error);
+      return false;
+    }
+  }
+
+  /**
    * Clear progress for a specific episode (deletes local WatermelonDB record)
    * Useful for manually clearing corrupted data
    */

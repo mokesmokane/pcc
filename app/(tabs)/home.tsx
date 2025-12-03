@@ -19,6 +19,7 @@ import { OlderHistorySection } from '../components/OlderHistorySection';
 import { useHistoryData, type HistoryEpisode } from '../hooks/useHistoryData';
 import { DiscussionFlow } from '../components/DiscussionFlow';
 import { PollReviewAllResults } from '../components/PollReviewAllResults';
+import { EpisodeRatingModal } from '../components/EpisodeRatingModal';
 import { useWeeklySelections, type WeeklyPodcast } from '@/contexts/WeeklySelectionsContext';
 import { useMultipleEpisodeProgress } from '@/hooks/queries/usePodcastMetadata';
 import { useCurrentProfile } from '../hooks/queries/useProfile';
@@ -27,7 +28,10 @@ import { queryKeys } from '@/hooks/queries/queryKeys';
 import { useAuth } from '../contexts/AuthContext';
 import { useMeetups } from '../contexts/MeetupsContext';
 import { useCurrentPodcastStore } from '../stores/currentPodcastStore';
+import { useRatingStore } from '../stores/useRatingStore';
+import { supabase } from '../lib/supabase';
 import { styles } from '../styles/home.styles';
+import { useMiniPlayer } from '../contexts/MiniPlayerContext';
 
 const CURRENT_PODCAST_KEY = '@current_podcast_id';
 
@@ -44,6 +48,9 @@ export default function HomeScreen() {
   const queryClient = useQueryClient();
   const { meetups, userStatuses, loadMeetups } = useMeetups();
   const { flatHistory, loading: historyLoading } = useHistoryData({ limit: 6 });
+  const pendingRating = useRatingStore((state) => state.pendingRating);
+  const setPendingRating = useRatingStore((state) => state.setPendingRating);
+  const { miniPlayerHeight } = useMiniPlayer();
 
   // Get all episode IDs for batch progress loading (memoized to prevent infinite loops)
   const userChoiceIds = useMemo(() => userChoices.map(p => p.id), [userChoices]);
@@ -348,6 +355,36 @@ export default function HomeScreen() {
     });
   };
 
+  const handleRateEpisode = async (rating: number) => {
+    if (!pendingRating || !user?.id) {
+      setPendingRating(null);
+      return;
+    }
+
+    try {
+      console.log('[Home] Saving rating:', rating, 'for episode:', pendingRating.episodeId);
+      const { error } = await supabase
+        .from('user_episode_progress')
+        .update({ rating })
+        .eq('user_id', user.id)
+        .eq('episode_id', pendingRating.episodeId);
+
+      if (error) {
+        console.error('[Home] Failed to save rating:', error);
+      } else {
+        console.log('[Home] Rating saved successfully');
+      }
+    } catch (error) {
+      console.error('[Home] Error saving rating:', error);
+    } finally {
+      setPendingRating(null);
+    }
+  };
+
+  const handleSkipRating = () => {
+    setPendingRating(null);
+  };
+
 
   if (!fontsLoaded) {
     return (
@@ -370,7 +407,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container} edges={[]}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 40 + miniPlayerHeight }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Welcome Header */}
@@ -503,6 +540,16 @@ export default function HomeScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Episode Rating Modal */}
+      <EpisodeRatingModal
+        visible={pendingRating !== null}
+        episodeTitle={pendingRating?.episodeTitle || ''}
+        podcastTitle={pendingRating?.podcastTitle}
+        artwork={pendingRating?.artwork}
+        onRate={handleRateEpisode}
+        onSkip={handleSkipRating}
+      />
     </SafeAreaView>
   );
 }

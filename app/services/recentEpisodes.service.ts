@@ -151,21 +151,13 @@ export const fetchRecentEpisodes = async (
       const trackedIds = new Set(trackedPodcasts.map(p => p.id));
       const validEpisodes = cache.episodes.filter(ep => trackedIds.has(ep.podcastId));
 
-      // Only return cache if ALL tracked podcasts were fetched in this cache
-      // We check by seeing if the cache has at least attempted to fetch each podcast
-      const cachedPodcastIds = new Set(validEpisodes.map(ep => ep.podcastId));
-      const allTrackedInCache = trackedPodcasts.every(p => cachedPodcastIds.has(p.id));
-
-      // Only use cache if it covers all currently tracked podcasts
-      if (allTrackedInCache && validEpisodes.length > 0) {
-        console.log(`Using cached episodes: ${validEpisodes.length} from ${cachedPodcastIds.size} podcasts`);
-        // Sanitize podcast titles in case cache has old unsanitized data
-        return validEpisodes
-          .map(ep => ({ ...ep, podcastTitle: sanitizeTitle(ep.podcastTitle) }))
-          .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
-      }
-      // Otherwise fall through to fetch fresh data
-      console.log('Cache incomplete, fetching fresh data...');
+      // Cache is valid if it's not stale - we don't require all podcasts to have episodes
+      // (some podcasts may not have released anything in the last 14 days)
+      console.log(`Using cached episodes: ${validEpisodes.length} episodes`);
+      // Sanitize podcast titles in case cache has old unsanitized data
+      return validEpisodes
+        .map(ep => ({ ...ep, podcastTitle: sanitizeTitle(ep.podcastTitle) }))
+        .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime());
     }
   }
 

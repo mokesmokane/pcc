@@ -117,7 +117,9 @@ export const SeekBar: React.FC<SeekBarProps> = ({
       const clampedX = Math.max(0, Math.min(event.x, containerWidth.value));
       progressPosition.value = clampedX;
 
-      const newPosition = (clampedX / containerWidth.value) * duration;
+      // Cap display position to 1 second before end (same as actual seek)
+      const maxSeekPosition = Math.max(0, duration - 1);
+      const newPosition = Math.min((clampedX / containerWidth.value) * duration, maxSeekPosition);
       runOnJS(updateDisplayPos)(newPosition);
     })
     .onUpdate((event) => {
@@ -129,7 +131,9 @@ export const SeekBar: React.FC<SeekBarProps> = ({
       const clampedX = Math.max(0, Math.min(event.x, containerWidth.value));
       progressPosition.value = clampedX;
 
-      const newPosition = (clampedX / containerWidth.value) * duration;
+      // Cap display position to 1 second before end (same as actual seek)
+      const maxSeekPosition = Math.max(0, duration - 1);
+      const newPosition = Math.min((clampedX / containerWidth.value) * duration, maxSeekPosition);
       runOnJS(updateDisplayPos)(newPosition);
     })
     .onEnd((event) => {
@@ -142,7 +146,11 @@ export const SeekBar: React.FC<SeekBarProps> = ({
       }
 
       const clampedX = Math.max(0, Math.min(event.x, containerWidth.value));
-      const finalPosition = (clampedX / containerWidth.value) * duration;
+      let finalPosition = (clampedX / containerWidth.value) * duration;
+
+      // Cap seek position to 1 second before end to prevent weird track-advance behavior
+      const maxSeekPosition = Math.max(0, duration - 1);
+      finalPosition = Math.min(finalPosition, maxSeekPosition);
 
       thumbScale.value = withSpring(1, { damping: 10, stiffness: 150 });
       isDragging.value = false;

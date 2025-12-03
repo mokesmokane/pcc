@@ -3,7 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
-  Modal,
+  RefreshControl,
   SectionList,
   StyleSheet,
   Text,
@@ -16,9 +16,15 @@ import { useRouter } from 'expo-router';
 import { PaytoneOne_400Regular, useFonts } from '@expo-google-fonts/paytone-one';
 import { useCurrentTrackOnly, useQueue } from '../stores/audioStore.hooks';
 import { useMultipleEpisodeProgress } from '../hooks/queries/usePodcastMetadata';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../hooks/queries/queryKeys';
+import { useDatabase } from '../contexts/DatabaseContext';
+import { useAuth } from '../contexts/AuthContext';
 import { ManageTrackedPodcastsModal } from '../components/ManageTrackedPodcastsModal';
+import { DropdownMenu } from '../components/DropdownMenu';
 import { styles } from '../styles/upnext.styles';
 import { useWeeklySelections } from '../contexts/WeeklySelectionsContext';
+import { useMiniPlayer } from '../contexts/MiniPlayerContext';
 import {
   downloadService,
   selectDownloadedEpisodes,
@@ -48,19 +54,33 @@ export default function UpNextScreen() {
   const [fontsLoaded] = useFonts({
     PaytoneOne_400Regular,
   });
+  const { miniPlayerHeight } = useMiniPlayer();
   const { queue, removeFromQueue } = useQueue();
   const currentTrack = useCurrentTrackOnly();
   const { selections } = useWeeklySelections();
+  const { progressRepository } = useDatabase();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  // Check if an episode is a Podcast Club episode
-  const isClubEpisode = useCallback((episodeId: string | undefined) => {
-    if (!episodeId) return false;
-    return selections.has(episodeId);
+  // Check if an episode is a Podcast Club episode (match on audio URL since IDs differ)
+  // Create a Set of club audio URLs for efficient lookup
+  const clubAudioUrls = React.useMemo(() => {
+    const urls = new Set<string>();
+    selections.forEach((podcast) => {
+      if (podcast.audioUrl) {
+        urls.add(podcast.audioUrl);
+      }
+    });
+    return urls;
   }, [selections]);
 
+  const isClubEpisode = useCallback((trackUrl: string | undefined) => {
+    if (!trackUrl) return false;
+    return clubAudioUrls.has(trackUrl);
+  }, [clubAudioUrls]);
+
   // UI state (local)
-  const [actionSheetVisible, setActionSheetVisible] = useState(false);
-  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
+  const [selectedTrackId, setSelectedTrackId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<FilterTab>('queue');
   const [showManageModal, setShowManageModal] = useState(false);
 
@@ -130,12 +150,21 @@ export default function UpNextScreen() {
     clearPreModalSnapshot();
   }, [trackedPodcasts, getPreModalSnapshot, clearPreModalSnapshot, removeEpisodesForPodcasts, clearEpisodes, mergeNewEpisodes]);
 
-  // Load recent episodes when switching to New tab
+  // Load recent episodes when switching to New tab (only if empty)
   const handleTabChange = useCallback((tab: FilterTab) => {
     setActiveTab(tab);
-    if (tab === 'new' && trackedPodcasts.length > 0) {
+    if (tab === 'new' && trackedPodcasts.length > 0 && groupedRecentEpisodes.length === 0) {
       loadEpisodes(trackedPodcasts);
     }
+  }, [trackedPodcasts, loadEpisodes, groupedRecentEpisodes.length]);
+
+  // Pull-to-refresh for New tab
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = useCallback(async () => {
+    if (trackedPodcasts.length === 0) return;
+    setIsRefreshing(true);
+    await loadEpisodes(trackedPodcasts, true); // forceRefresh = true
+    setIsRefreshing(false);
   }, [trackedPodcasts, loadEpisodes]);
 
   // Get unique track IDs for progress loading (including downloads)
@@ -170,11 +199,17 @@ export default function UpNextScreen() {
   const handleTrackPress = (track: Track) => {
     // Get saved progress for this track
     const progress = progressMapData?.get(track.id || '');
-    const startPosition = progress?.currentPosition || 0;
+    const percentage = progress?.progressPercentage || 0;
     const duration = progress?.totalDuration || 0;
+    const isFinished = percentage >= 95;
 
-    // Don't call playNow() - let player handle playback on user action
-    // This matches how Clubs page works
+    // If finished, show bottom sheet with options
+    if (isFinished) {
+      setSelectedTrackId(track.id || null);
+      return;
+    }
+
+    const startPosition = progress?.currentPosition || 0;
 
     router.push({
       pathname: '/player',
@@ -192,17 +227,29 @@ export default function UpNextScreen() {
   };
 
   const handleLongPress = (track: Track) => {
-    setSelectedTrack(track);
-    setActionSheetVisible(true);
+    // Toggle - if same track, close; otherwise open for new track
+    if (selectedTrackId === track.id) {
+      setSelectedTrackId(null);
+    } else {
+      setSelectedTrackId(track.id || null);
+    }
   };
 
   const handleCloseActionSheet = () => {
-    setActionSheetVisible(false);
-    setSelectedTrack(null);
+    setSelectedTrackId(null);
+  };
+
+  // Get selected track from current list
+  const getSelectedTrack = (): Track | null => {
+    if (!selectedTrackId) return null;
+    const allTracks = activeTab === 'queue' ? uniqueQueue :
+                      activeTab === 'downloaded' ? downloadedTracks :
+                      groupedRecentEpisodes.flatMap(s => s.data);
+    return allTracks.find(t => t.id === selectedTrackId) || null;
   };
 
   const handleRemoveFromQueue = async () => {
-    const trackId = selectedTrack?.id;
+    const trackId = selectedTrackId;
     handleCloseActionSheet();
 
     if (trackId) {
@@ -211,13 +258,12 @@ export default function UpNextScreen() {
   };
 
   const handleDeleteDownload = async () => {
-    const trackId = selectedTrack?.id;
+    const trackId = selectedTrackId;
     console.log('[History] handleDeleteDownload called, trackId:', trackId);
     handleCloseActionSheet();
 
     if (trackId) {
       try {
-        // Delete from filesystem and remove from store (handled by service)
         console.log('[History] Calling downloadService.deleteDownload...');
         await downloadService.deleteDownload(trackId);
         console.log('[History] Delete completed');
@@ -228,7 +274,7 @@ export default function UpNextScreen() {
   };
 
   const handleDownloadEpisode = async () => {
-    const track = selectedTrack;
+    const track = getSelectedTrack();
     handleCloseActionSheet();
 
     if (track) {
@@ -248,12 +294,86 @@ export default function UpNextScreen() {
   };
 
   const handlePlayNow = async () => {
-    const track = selectedTrack;
+    const track = getSelectedTrack();
     handleCloseActionSheet();
 
     if (track) {
       await handleTrackPress(track);
     }
+  };
+
+  const handlePlayAgain = async () => {
+    const track = getSelectedTrack();
+    handleCloseActionSheet();
+
+    if (track?.id && user?.id) {
+      await progressRepository.resetProgress(user.id, track.id);
+      // Invalidate queries to refresh UI
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.podcastMetadata.multipleProgress(trackIds, user.id),
+      });
+
+      // Navigate to player starting from 0
+      router.push({
+        pathname: '/player',
+        params: {
+          trackId: track.id,
+          trackTitle: track.title,
+          trackArtist: track.artist,
+          trackArtwork: track.artwork,
+          trackAudioUrl: track.url,
+          trackDescription: track.description,
+          trackDuration: '0',
+          trackPosition: '0',
+        },
+      });
+    }
+  };
+
+  const handleArchive = async () => {
+    const trackId = selectedTrackId;
+    handleCloseActionSheet();
+
+    if (trackId) {
+      // Remove from queue
+      await removeFromQueue(trackId);
+      // Delete download if exists
+      try {
+        await downloadService.deleteDownload(trackId);
+      } catch {
+        // Ignore if not downloaded
+      }
+    }
+  };
+
+  // Get menu items based on active tab and completion status
+  const getMenuItems = () => {
+    const selectedTrack = getSelectedTrack();
+    const { percentage } = selectedTrack ? getProgressForTrack(selectedTrack.id || '') : { percentage: 0 };
+    const isFinished = percentage >= 95;
+
+    // For finished episodes, show Play Again and Archive
+    if (isFinished) {
+      return [
+        { label: 'Play Again', icon: 'play' as const, onPress: handlePlayAgain },
+        { label: 'Archive', icon: 'archive-outline' as const, onPress: handleArchive },
+      ];
+    }
+
+    // For in-progress episodes, show standard options
+    const items = [];
+    items.push({ label: 'Play', icon: 'play' as const, onPress: handlePlayNow });
+
+    // Tab-specific options
+    if (activeTab === 'queue') {
+      items.push({ label: 'Remove from Queue', icon: 'trash-outline' as const, onPress: handleRemoveFromQueue, destructive: true });
+    } else if (activeTab === 'downloaded') {
+      items.push({ label: 'Delete Download', icon: 'trash-outline' as const, onPress: handleDeleteDownload, destructive: true });
+    } else {
+      items.push({ label: 'Download', icon: 'download-outline' as const, onPress: handleDownloadEpisode });
+    }
+
+    return items;
   };
 
   const getProgressForTrack = (trackId: string) => {
@@ -285,15 +405,21 @@ export default function UpNextScreen() {
     };
   };
 
-  const renderQueueItem = ({ item, index }: { item: Track; index: number }) => {
+  const renderQueueItem = ({ item }: { item: Track }) => {
     const isCurrent = currentTrack?.id === item.id;
-    const { percentage, completed } = getProgressForTrack(item.id || '');
-    const isClub = isClubEpisode(item.id);
+    const { percentage } = getProgressForTrack(item.id || '');
+    const isClub = isClubEpisode(item.url);
     const downloadStatus = getDownloadStatus(item.id || '');
+    // For Up Next, use percentage-based completion (not the sticky completed flag)
+    const isFinished = percentage >= 95;
 
     return (
       <TouchableOpacity
-        style={[styles.queueItem, isCurrent && styles.queueItemCurrent]}
+        style={[
+          styles.queueItem,
+          isCurrent && styles.queueItemCurrent,
+          isFinished && localStyles.queueItemCompleted,
+        ]}
         onPress={() => handleTrackPress(item)}
         onLongPress={() => handleLongPress(item)}
         activeOpacity={0.7}
@@ -301,7 +427,7 @@ export default function UpNextScreen() {
         <View style={styles.artworkContainer}>
           <Image
             source={{ uri: item.artwork as string }}
-            style={styles.artwork}
+            style={[styles.artwork, isFinished && localStyles.artworkCompleted]}
           />
           {isClub && (
             <Image
@@ -312,12 +438,12 @@ export default function UpNextScreen() {
         </View>
 
         <View style={styles.content}>
-          <Text style={styles.trackTitle} numberOfLines={2}>
+          <Text style={[styles.trackTitle, isFinished && localStyles.textCompleted]} numberOfLines={2}>
             {item.title}
           </Text>
           <View style={localStyles.artistRow}>
             <Text
-              style={[styles.trackArtist, localStyles.artistText]}
+              style={[styles.trackArtist, localStyles.artistText, isFinished && localStyles.textCompleted]}
               numberOfLines={1}
             >
               {item.artist}
@@ -338,22 +464,26 @@ export default function UpNextScreen() {
             )}
           </View>
 
-          {percentage > 0 && (
+          {isFinished ? (
+            <View style={localStyles.finishedBadge}>
+              <Ionicons name="checkmark-circle" size={14} color="#8B8680" />
+              <Text style={localStyles.finishedText}>Finished</Text>
+            </View>
+          ) : percentage > 0 ? (
             <View style={styles.progressContainer}>
               <View style={styles.progressBackground}>
                 <View
                   style={[
                     styles.progressFill,
                     { width: `${percentage}%` },
-                    completed && styles.progressFillCompleted,
                   ]}
                 />
               </View>
-              <Text style={[styles.progressText, completed && styles.progressTextCompleted]}>
-                {completed ? '100%' : `${Math.round(percentage)}%`}
+              <Text style={styles.progressText}>
+                {`${Math.round(percentage)}%`}
               </Text>
             </View>
-          )}
+          ) : null}
         </View>
       </TouchableOpacity>
     );
@@ -517,9 +647,17 @@ export default function UpNextScreen() {
             }
             keyExtractor={(item) => item.id || Math.random().toString()}
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: 20 + miniPlayerHeight }]}
             showsVerticalScrollIndicator={false}
             stickySectionHeadersEnabled={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                tintColor="#E05F4E"
+                colors={['#E05F4E']}
+              />
+            }
           />
         </>
       ) : filteredTracks.length === 0 ? (
@@ -535,7 +673,7 @@ export default function UpNextScreen() {
             renderItem={renderQueueItem}
             keyExtractor={(item) => item.id || Math.random().toString()}
             style={styles.scrollView}
-            contentContainerStyle={styles.scrollContent}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: 20 + miniPlayerHeight }]}
             showsVerticalScrollIndicator={false}
           />
           {activeTab === 'queue' && (
@@ -544,109 +682,18 @@ export default function UpNextScreen() {
         </>
       )}
 
-      {/* Action Sheet Modal */}
-      <Modal
-        visible={actionSheetVisible}
-        animationType="fade"
-        transparent
-        onRequestClose={handleCloseActionSheet}
-      >
-        <TouchableOpacity
-          style={localStyles.actionSheetOverlay}
-          activeOpacity={1}
-          onPress={handleCloseActionSheet}
-        >
-          <TouchableOpacity
-            style={localStyles.actionSheetDialog}
-            activeOpacity={1}
-            onPress={(e) => e.stopPropagation()}
-          >
-            <Text style={[localStyles.actionSheetTitle, fontsLoaded && { fontFamily: 'PaytoneOne_400Regular' }]} numberOfLines={2}>
-              {selectedTrack?.title}
-            </Text>
-            <Text style={localStyles.actionSheetSubtitle} numberOfLines={1}>
-              {selectedTrack?.artist}
-            </Text>
-
-            <View style={localStyles.actionSheetButtons}>
-              {activeTab === 'queue' && (
-                <>
-                  <TouchableOpacity
-                    style={localStyles.actionSheetButtonPrimary}
-                    onPress={handlePlayNow}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="play" size={18} color="#FFFFFF" />
-                    <Text style={localStyles.actionSheetButtonPrimaryText}>Play Now</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={localStyles.actionSheetButtonDestructive}
-                    onPress={handleRemoveFromQueue}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="trash-outline" size={18} color="#E05F4E" />
-                    <Text style={localStyles.actionSheetButtonDestructiveText}>Remove</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-
-              {activeTab === 'downloaded' && (
-                <>
-                  <TouchableOpacity
-                    style={localStyles.actionSheetButtonPrimary}
-                    onPress={handlePlayNow}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="play" size={18} color="#FFFFFF" />
-                    <Text style={localStyles.actionSheetButtonPrimaryText}>Play Now</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={localStyles.actionSheetButtonDestructive}
-                    onPress={handleDeleteDownload}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="trash-outline" size={18} color="#E05F4E" />
-                    <Text style={localStyles.actionSheetButtonDestructiveText}>Delete</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-
-              {activeTab === 'new' && (
-                <>
-                  <TouchableOpacity
-                    style={localStyles.actionSheetButtonPrimary}
-                    onPress={handlePlayNow}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="play" size={18} color="#FFFFFF" />
-                    <Text style={localStyles.actionSheetButtonPrimaryText}>Play Now</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={localStyles.actionSheetButtonSecondary}
-                    onPress={handleDownloadEpisode}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="download-outline" size={18} color="#403837" />
-                    <Text style={localStyles.actionSheetButtonSecondaryText}>Download</Text>
-                  </TouchableOpacity>
-                </>
-              )}
-            </View>
-
-            <TouchableOpacity
-              style={localStyles.actionSheetCancelButton}
-              onPress={handleCloseActionSheet}
-              activeOpacity={0.7}
-            >
-              <Text style={localStyles.actionSheetCancelText}>Cancel</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
-
       <ManageTrackedPodcastsModal
         visible={showManageModal}
         onClose={handleCloseManageModal}
+      />
+
+      <DropdownMenu
+        visible={!!selectedTrackId}
+        artwork={getSelectedTrack()?.artwork as string}
+        podcastTitle={getSelectedTrack()?.artist}
+        episodeTitle={getSelectedTrack()?.title}
+        items={getMenuItems()}
+        onClose={handleCloseActionSheet}
       />
     </SafeAreaView>
   );
@@ -731,93 +778,6 @@ const localStyles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  actionSheetOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  actionSheetDialog: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
-    width: '100%',
-    maxWidth: 320,
-  },
-  actionSheetTitle: {
-    fontSize: 20,
-    fontWeight: '400',
-    color: '#403837',
-    marginBottom: 8,
-  },
-  actionSheetSubtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: '#8B8680',
-    marginBottom: 24,
-  },
-  actionSheetButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  actionSheetButtonPrimary: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: '#E05F4E',
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  actionSheetButtonPrimaryText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  actionSheetButtonSecondary: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: '#F4F1ED',
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  actionSheetButtonSecondaryText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#403837',
-  },
-  actionSheetButtonDestructive: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 2,
-    borderColor: '#E05F4E',
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  actionSheetButtonDestructiveText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#E05F4E',
-  },
-  actionSheetCancelButton: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  actionSheetCancelText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#8B8680',
-  },
   artistRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -830,5 +790,25 @@ const localStyles = StyleSheet.create({
     width: 18,
     height: 18,
     flexShrink: 0,
+  },
+  queueItemCompleted: {
+    opacity: 0.6,
+  },
+  artworkCompleted: {
+    opacity: 0.7,
+  },
+  textCompleted: {
+    color: '#8B8680',
+  },
+  finishedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 2,
+  },
+  finishedText: {
+    fontSize: 12,
+    color: '#8B8680',
+    fontWeight: '500',
   },
 });

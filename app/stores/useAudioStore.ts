@@ -30,6 +30,19 @@ async function getTrackPositionLocal(trackId: string): Promise<number> {
   }
 }
 
+// Clear saved position for a track (when completed)
+async function clearTrackPositionLocal(trackId: string): Promise<void> {
+  try {
+    const stored = await AsyncStorage.getItem(TRACK_POSITIONS_KEY);
+    if (!stored) return;
+    const positions: Record<string, number> = JSON.parse(stored);
+    delete positions[trackId];
+    await AsyncStorage.setItem(TRACK_POSITIONS_KEY, JSON.stringify(positions));
+  } catch (error) {
+    console.error('[AudioStore] Failed to clear track position:', error);
+  }
+}
+
 // Progress save interval in ms (save every 10 seconds during playback)
 const PROGRESS_SAVE_INTERVAL = 10000;
 
@@ -50,6 +63,7 @@ interface AudioState {
   // Callbacks for integration
   onProgressUpdate: ((episodeId: string, position: number, duration: number) => void) | null;
   onEpisodeComplete: (() => void) | null;
+  onTrackFinished: ((trackId: string, trackTitle: string, trackArtist?: string, trackArtwork?: string) => void) | null;
 }
 
 interface AudioActions {
@@ -62,6 +76,7 @@ interface AudioActions {
   initialize: (callbacks: {
     onProgressUpdate: (episodeId: string, position: number, duration: number) => void;
     onEpisodeComplete: () => void;
+    onTrackFinished: (trackId: string, trackTitle: string, trackArtist?: string, trackArtwork?: string) => void;
   }) => void;
 
   // Cleanup
@@ -81,6 +96,7 @@ export const useAudioStore = create<AudioStore>()(
     isInitialized: false,
     onProgressUpdate: null,
     onEpisodeComplete: null,
+    onTrackFinished: null,
 
     setHasShownCompletion: (value) => set({ hasShownCompletion: value }),
 
@@ -122,6 +138,7 @@ export const useAudioStore = create<AudioStore>()(
         set({
           onProgressUpdate: callbacks.onProgressUpdate,
           onEpisodeComplete: callbacks.onEpisodeComplete,
+          onTrackFinished: callbacks.onTrackFinished,
         });
         return;
       }
@@ -132,25 +149,82 @@ export const useAudioStore = create<AudioStore>()(
         isInitialized: true,
         onProgressUpdate: callbacks.onProgressUpdate,
         onEpisodeComplete: callbacks.onEpisodeComplete,
+        onTrackFinished: callbacks.onTrackFinished,
       });
 
       // Progress persistence on track change
       TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, async (event) => {
+        console.log('[AudioStore] 🔄 PlaybackActiveTrackChanged fired', {
+          lastTrackId: event.lastTrack?.id,
+          lastTrackDuration: event.lastTrack?.duration,
+          lastPosition: event.lastPosition,
+          newTrackId: event.track?.id,
+        });
+
         // Save position for the track we're leaving
         if (event.lastTrack && event.lastPosition !== undefined) {
-          const { onProgressUpdate } = get();
+          const { onProgressUpdate, onTrackFinished } = get();
 
-          // Use duration from the track metadata only - DO NOT call getProgress() here
-          // because after track change, getProgress() returns data for the NEW track, not the old one!
-          const duration = event.lastTrack.duration || 0;
+          // Use duration from the track metadata
+          let duration = event.lastTrack.duration || 0;
 
-          // Only save if we have a valid duration from track metadata
+          // FALLBACK: If no duration in metadata but position is substantial (>10 min),
+          // assume track finished naturally. RNTP only auto-advances when track ends,
+          // so lastPosition IS approximately the duration.
+          // Using 10 min threshold because nobody listens 10+ min then manually skips.
+          const MIN_POSITION_FOR_INFERRED_FINISH = 600; // 10 minutes
+          const inferredFinish = duration <= 0 && event.lastPosition >= MIN_POSITION_FOR_INFERRED_FINISH;
+
+          if (inferredFinish) {
+            console.log('[AudioStore] 🔄 No duration in metadata, inferring finish from position:', Math.floor(event.lastPosition));
+            duration = event.lastPosition; // Treat position as duration (makes secondsRemaining ≈ 0)
+          }
+
+          // Only save if we have a valid duration
           // Also validate that position isn't greater than duration (sanity check)
           if (duration > 0 && event.lastPosition <= duration) {
             console.log('[AudioStore] Track changed, saving progress for:', event.lastTrack.id, 'position:', Math.floor(event.lastPosition));
             onProgressUpdate?.(event.lastTrack.id!, event.lastPosition, duration);
-            // Save per-track position for queue restoration
-            await saveTrackPositionLocal(event.lastTrack.id!, event.lastPosition);
+
+            // Check if track finished naturally (within 15 seconds of the end)
+            const secondsRemaining = duration - event.lastPosition;
+            const trackFinished = secondsRemaining <= 15;
+
+            console.log('[AudioStore] 🔄 Completion check:', {
+              duration,
+              lastPosition: event.lastPosition,
+              secondsRemaining,
+              trackFinished,
+            });
+
+            if (trackFinished) {
+              console.log('[AudioStore] ✅ Track finished naturally:', event.lastTrack.id);
+
+              // Clear saved position for the finished track
+              await clearTrackPositionLocal(event.lastTrack.id!);
+
+              // Trigger callback for navigation and rating modal
+              console.log('[AudioStore] 📢 Calling onTrackFinished (ActiveTrackChanged), callback exists:', !!onTrackFinished);
+              onTrackFinished?.(event.lastTrack.id!, event.lastTrack.title || 'Episode', event.lastTrack.artist, event.lastTrack.artwork);
+
+              // Remove finished track from queue AFTER a delay to let RNTP settle
+              const finishedTrackId = event.lastTrack.id!;
+              setTimeout(async () => {
+                try {
+                  const queue = await TrackPlayer.getQueue();
+                  const finishedIndex = queue.findIndex(t => t.id === finishedTrackId);
+                  if (finishedIndex !== -1) {
+                    console.log('[AudioStore] Removing finished track from queue:', finishedTrackId);
+                    await TrackPlayer.remove(finishedIndex);
+                  }
+                } catch (error) {
+                  console.error('[AudioStore] Error removing finished track:', error);
+                }
+              }, 500);
+            } else {
+              // Save per-track position for queue restoration (only if not finished)
+              await saveTrackPositionLocal(event.lastTrack.id!, event.lastPosition);
+            }
           } else if (duration <= 0) {
             console.warn('[AudioStore] Skipping save - no valid duration in track metadata for:', event.lastTrack.id);
           } else {
@@ -184,19 +258,32 @@ export const useAudioStore = create<AudioStore>()(
         }
       });
 
-      // Episode completion
+      // Episode completion (last track in queue finished)
       TrackPlayer.addEventListener(Event.PlaybackQueueEnded, async (event) => {
-        const { onEpisodeComplete, hasShownCompletion } = get();
+        const { onTrackFinished } = get();
 
-        // Show celebration screen if not already shown
-        if (!hasShownCompletion && event.track) {
-          console.log('[AudioStore] Episode completed! Showing celebration screen');
-          set({ hasShownCompletion: true });
-          onEpisodeComplete?.();
+        console.log('[AudioStore] 🏁 PlaybackQueueEnded fired', {
+          trackId: event.track?.id,
+          trackTitle: event.track?.title,
+          position: event.position,
+        });
+
+        // If we have a track that just ended, it finished playing
+        if (event.track) {
+          console.log('[AudioStore] ✅ Last track in queue finished:', event.track.id);
+
+          // Clear saved position for the finished track
+          await clearTrackPositionLocal(event.track.id!);
+
+          // Trigger callback for navigation and rating modal
+          console.log('[AudioStore] 📢 Calling onTrackFinished (QueueEnded), callback exists:', !!onTrackFinished);
+          onTrackFinished?.(event.track.id!, event.track.title || 'Episode', event.track.artist, event.track.artwork);
+        } else {
+          console.log('[AudioStore] ⚠️ QueueEnded but event.track is undefined!');
         }
 
         // Always clear the queue when it ends so mini player doesn't show stale track
-        console.log('[AudioStore] Queue ended, clearing player');
+        console.log('[AudioStore] Clearing player');
         await TrackPlayer.reset();
       });
 
@@ -225,7 +312,7 @@ export const useAudioStore = create<AudioStore>()(
           const MIN_VALID_DURATION = 60;
 
           if (track?.id && progress.duration >= MIN_VALID_DURATION) {
-            const { onProgressUpdate, onEpisodeComplete, hasShownCompletion } = get();
+            const { onProgressUpdate } = get();
             onProgressUpdate?.(track.id, progress.position, progress.duration);
 
             // Also persist to AsyncStorage for app restart recovery
@@ -233,14 +320,6 @@ export const useAudioStore = create<AudioStore>()(
             await AsyncStorage.setItem('lastPlayingEpisode', track.id);
             // Save per-track position
             await saveTrackPositionLocal(track.id, progress.position);
-
-            // Check for completion (>= 98% progress) as backup detection
-            const progressPercent = progress.position / progress.duration;
-            if (progressPercent >= 0.98 && !hasShownCompletion) {
-              console.log('[AudioStore] Episode nearly complete (98%+), showing celebration screen');
-              set({ hasShownCompletion: true });
-              onEpisodeComplete?.();
-            }
           }
         } catch (error) {
           console.error('[AudioStore] Error saving progress:', error);
@@ -270,12 +349,34 @@ export const useAudioStore = create<AudioStore>()(
           // Save progress immediately on pause
           await saveCurrentProgress();
         } else if (event.state === State.Ended) {
-          // Track ended - clear the queue to hide mini player
-          console.log('[AudioStore] Playback ended, clearing player');
+          // Track ended - this fires when a single track finishes (no more in queue)
+          console.log('[AudioStore] ⏹️ State.Ended fired');
           if (progressIntervalId) {
             clearInterval(progressIntervalId);
             set({ progressIntervalId: null });
           }
+
+          // Get track info before resetting
+          const { onTrackFinished } = get();
+          console.log('[AudioStore] ⏹️ Getting active track...');
+          try {
+            const track = await TrackPlayer.getActiveTrack();
+            console.log('[AudioStore] ⏹️ Active track:', track?.id || 'NULL', track?.title || '');
+            if (track) {
+              console.log('[AudioStore] ✅ Track finished (State.Ended):', track.id);
+              // Clear saved position for the finished track
+              await clearTrackPositionLocal(track.id!);
+              // Trigger callback for navigation and rating modal
+              console.log('[AudioStore] 📢 Calling onTrackFinished (State.Ended), callback exists:', !!onTrackFinished);
+              onTrackFinished?.(track.id!, track.title || 'Episode', track.artist, track.artwork);
+            } else {
+              console.log('[AudioStore] ⚠️ State.Ended but getActiveTrack() returned null!');
+            }
+          } catch (error) {
+            console.error('[AudioStore] Error getting track info on end:', error);
+          }
+
+          // Clear the queue to hide mini player
           await TrackPlayer.reset();
         }
       });

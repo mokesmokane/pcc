@@ -4,6 +4,7 @@ import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MeetupsList } from '../components/player/MeetupsList';
 import { useMeetups } from '../contexts/MeetupsContext';
+import { useMiniPlayer } from '../contexts/MiniPlayerContext';
 import { styles } from '../styles/events.styles';
 
 export default function EventsScreen() {
@@ -19,6 +20,7 @@ export default function EventsScreen() {
     joinMeetup,
     leaveMeetup,
   } = useMeetups();
+  const { miniPlayerHeight } = useMiniPlayer();
 
   // Load all upcoming meetups on mount
   useEffect(() => {
@@ -49,7 +51,7 @@ export default function EventsScreen() {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 20 + miniPlayerHeight }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Meetup Cards */}
@@ -67,7 +69,7 @@ export default function EventsScreen() {
       </ScrollView>
 
       {/* Footer - fixed at bottom */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { marginBottom: miniPlayerHeight }]}>
         <View style={styles.speechBubble}>
           <Text style={styles.footerText}>
             No meetup near you? 😊 Be a community hero - start one!

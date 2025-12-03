@@ -11,6 +11,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCurrentProfile } from '../hooks/queries/useProfile';
 import { useNotifications } from '../contexts/NotificationsContext';
 import { useWeeklySelections } from '../contexts/WeeklySelectionsContext';
+import { MiniPlayerProvider } from '../contexts/MiniPlayerContext';
 import { inviteService } from '../services/invite.service';
 
 export default function TabLayout() {
@@ -27,7 +28,7 @@ export default function TabLayout() {
   const { userChoice } = useWeeklySelections();
 
   return (
-    <>
+    <MiniPlayerProvider>
       <Tabs
         screenOptions={{
           headerShown: true,
@@ -181,7 +182,7 @@ export default function TabLayout() {
         visible={showNotificationsModal}
         onClose={() => setShowNotificationsModal(false)}
       />
-    </>
+    </MiniPlayerProvider>
   );
 }
 

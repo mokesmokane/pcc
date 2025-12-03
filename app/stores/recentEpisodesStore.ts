@@ -57,13 +57,20 @@ export const useRecentEpisodesStore = create<RecentEpisodesStore>()(
       }
 
       // Prevent duplicate loads
-      if (get().isLoading && !forceRefresh) {
+      if (get().isLoading) {
         console.log('[RecentEpisodesStore] Already loading, skipping');
         return;
       }
 
-      console.log('[RecentEpisodesStore] Loading episodes from', trackedPodcasts.length, 'podcasts');
-      set({ isLoading: true, error: null });
+      const hasExistingEpisodes = get().episodes.length > 0;
+
+      // Only show loading spinner if no episodes loaded yet
+      if (!hasExistingEpisodes) {
+        console.log('[RecentEpisodesStore] Loading episodes from', trackedPodcasts.length, 'podcasts');
+        set({ isLoading: true, error: null });
+      } else {
+        console.log('[RecentEpisodesStore] Background refresh from', trackedPodcasts.length, 'podcasts');
+      }
 
       try {
         const episodes = await fetchRecentEpisodes(trackedPodcasts, forceRefresh);
@@ -75,10 +82,16 @@ export const useRecentEpisodesStore = create<RecentEpisodesStore>()(
         });
       } catch (error) {
         console.error('[RecentEpisodesStore] Failed to load episodes:', error);
-        set({
-          isLoading: false,
-          error: error instanceof Error ? error.message : 'Failed to load episodes',
-        });
+        // Only set error if we were showing loading state
+        if (!hasExistingEpisodes) {
+          set({
+            isLoading: false,
+            error: error instanceof Error ? error.message : 'Failed to load episodes',
+          });
+        } else {
+          // Background refresh failed silently - keep existing episodes
+          set({ isLoading: false });
+        }
       }
     },
 

@@ -93,18 +93,15 @@ export function ReplySheet({
   const threadParticipants = [parentComment.author, ...replies.map(r => r.author)];
 
   return (
-    <Animated.View
-      style={[
-        styles.container,
-        {
-          transform: [{ translateY: slideAnim }],
-        },
-      ]}
-    >
-      <KeyboardAvoidingView
-        style={styles.keyboardAvoid}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
+    <>
+      {/* Main animated content (WITHOUT input bar) */}
+      <Animated.View
+        style={[
+          styles.container,
+          {
+            transform: [{ translateY: slideAnim }],
+          },
+        ]}
       >
         <View style={[styles.content, { paddingTop: insets.top + 64 }]}>
           {/* Header */}
@@ -176,22 +173,27 @@ export function ReplySheet({
             {/* Bottom padding for input */}
             <View style={{ height: 100 }} />
           </ScrollView>
-
-          {/* Reply input */}
-          <CommentsInputBar
-            value={inputValue}
-            onChangeText={setInputValue}
-            onSubmit={async (text) => {
-              await onSubmitReply(text);
-              setReplyingTo(null); // Clear after submitting
-              setInputValue(''); // Clear the input
-            }}
-            placeholder={replyingTo ? `Reply to ${replyingTo}...` : `Reply to ${parentComment.author}...`}
-            includeBottomPadding
-          />
         </View>
+      </Animated.View>
+
+      {/* Input Bar - SEPARATE, at higher z-index, with its own KAV */}
+      <KeyboardAvoidingView
+        style={styles.inputBarOverlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <CommentsInputBar
+          value={inputValue}
+          onChangeText={setInputValue}
+          onSubmit={async (text) => {
+            await onSubmitReply(text);
+            setReplyingTo(null); // Clear after submitting
+            setInputValue(''); // Clear the input
+          }}
+          placeholder={replyingTo ? `Reply to ${replyingTo}...` : `Reply to ${parentComment.author}...`}
+          includeBottomPadding
+        />
       </KeyboardAvoidingView>
-    </Animated.View>
+    </>
   );
 }
 
@@ -205,8 +207,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',  // Make container transparent
     zIndex: 1000,  // Same as discussion panel, below MiniPlayer
   },
-  keyboardAvoid: {
-    flex: 1,
+  inputBarOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1003,
   },
   content: {
     flex: 1,

@@ -154,7 +154,7 @@ export function DiscussionSheet({
         </SafeAreaView>
       </Animated.View>
 
-      {/* Discussion Panel - Always there, slides up/down */}
+      {/* Discussion Panel - Animated content (WITHOUT input bar) */}
       <Animated.View
         style={[
           styles.discussionPanelOverlay,
@@ -173,26 +173,21 @@ export function DiscussionSheet({
           },
         ]}
       >
-        <KeyboardAvoidingView
-          style={styles.keyboardAvoid}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-        >
-          <View style={[styles.container, { paddingTop: insets.top + 64 }]}>
-            <View style={styles.commentsContainer}>
-              {/* Comments Header with drag handlers */}
-              <CommentsHeader
-                commentCount={comments.length}
-                showDismiss={expanded}
-                onDismiss={onToggleExpand}
-                dragHandlers={discussionPanResponder.panHandlers}
-              />
+        <View style={[styles.container, { paddingTop: insets.top + 64 }]}>
+          <View style={styles.commentsContainer}>
+            {/* Comments Header with drag handlers */}
+            <CommentsHeader
+              commentCount={comments.length}
+              showDismiss={expanded}
+              onDismiss={onToggleExpand}
+              dragHandlers={discussionPanResponder.panHandlers}
+            />
 
-              {/* Comments List */}
-              <CommentsList
+            {/* Comments List */}
+            <CommentsList
               comments={comments}
               scrollable={true}
-              contentPadding={0}
+              contentPadding={expanded ? 80 : 0}
               onReply={(comment) => {
                 setSelectedComment(comment);
                 setShowReplySheet(true);
@@ -211,21 +206,27 @@ export function DiscussionSheet({
                 return [];
               }}
             />
-            </View>
-
-            {/* Comment Input Bar */}
-            <CommentsInputBar
-              onSubmit={async (text) => {
-                if (episodeId) {
-                  await submitComment(episodeId, text);
-                }
-              }}
-              autoFocus={autoFocusInput}
-              includeBottomPadding
-            />
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </Animated.View>
+
+      {/* Input Bar - SEPARATE, at higher z-index, with its own KAV */}
+      {expanded && (
+        <KeyboardAvoidingView
+          style={styles.inputBarOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <CommentsInputBar
+            onSubmit={async (text) => {
+              if (episodeId) {
+                await submitComment(episodeId, text);
+              }
+            }}
+            autoFocus={autoFocusInput}
+            includeBottomPadding
+          />
+        </KeyboardAvoidingView>
+      )}
 
       {/* Reply Sheet */}
       <ReplySheet
@@ -287,7 +288,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     overflow: 'hidden',
   },
-  keyboardAvoid: {
-    flex: 1,
+  inputBarOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1002,
   },
 });

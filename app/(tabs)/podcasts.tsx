@@ -19,6 +19,7 @@ import { PodcastSearchResult, searchPodcasts } from '../services/podcastIndex.se
 import { sanitizeTitle } from '../utils/rss';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { InfoDialog } from '../components/InfoDialog';
+import { useMiniPlayer } from '../contexts/MiniPlayerContext';
 
 // Store hooks
 import {
@@ -35,6 +36,7 @@ const ITEM_WIDTH = width / NUM_COLUMNS;
 export default function PodcastsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { miniPlayerHeight } = useMiniPlayer();
   const [fontsLoaded] = useFonts({
     PaytoneOne_400Regular,
   });
@@ -494,7 +496,7 @@ export default function PodcastsScreen() {
           renderItem={renderPodcast}
           keyExtractor={(item) => item.id}
           numColumns={NUM_COLUMNS}
-          contentContainerStyle={styles.grid}
+          contentContainerStyle={[styles.grid, { paddingBottom: miniPlayerHeight }]}
           columnWrapperStyle={styles.row}
           showsVerticalScrollIndicator={false}
         />
