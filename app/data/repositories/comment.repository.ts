@@ -96,9 +96,17 @@ export class CommentRepository extends BaseRepository<Comment> {
     // Get user profile for denormalization
     const { data: profile } = await supabase
       .from('profiles')
-      .select('username, avatar_url')
+      .select('username, avatar_url, first_name, last_name')
       .eq('id', userId)
       .single();
+
+    // Use username, or fall back to full name if username not set
+    let displayName = profile?.username;
+    if (!displayName && profile?.first_name) {
+      displayName = profile.last_name
+        ? `${profile.first_name} ${profile.last_name}`
+        : profile.first_name;
+    }
 
     // Generate a proper UUID
     const uuid = uuidv4();
@@ -109,7 +117,7 @@ export class CommentRepository extends BaseRepository<Comment> {
       user_id: userId,
       content,
       parent_id: parentId,
-      username: profile?.username,
+      username: displayName,
       avatar_url: profile?.avatar_url,
       needs_sync: true,
     } as any);
